@@ -1,0 +1,30 @@
+openapi: 3.1.0
+info:
+  title: EnergyShark E1 API
+  version: 0.1.0
+  description: API HTTP del backend. Los endpoints de RF01, RF02, RF04 y RF05 se agregan acá antes de implementarse.
+paths:
+  /health:
+    get:
+      summary: Estado del servicio
+      description: Responde 200 solo si el backend puede hablar con Postgres.
+      security: []
+      responses:
+        "200":
+          description: Servicio sano
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+security:
+  - bearerAuth: []
