@@ -17,7 +17,7 @@ negocia energía con la central y reporta su posición al cierre de cada ciclo.
 
 | Repo | Qué contiene |
 |---|---|
-| `backend` | API (FastAPI + Postgres) y consumidor del broker |
+| `backend` | `master` (API FastAPI + Postgres) y `connector` (consumidor del broker), heredados de la E0 |
 | `frontend` | SPA (React + Vite), servida desde S3 + CloudFront |
 | `contratos` | Este repo: schemas de mensajes, OpenAPI, este archivo |
 
@@ -29,6 +29,7 @@ negocia energía con la central y reporta su posición al cierre de cada ciclo.
 - Un `idpk` ya aplicado nunca se vuelve a aplicar al ledger, pero se registra como duplicado.
 - No se hace ACK de ACKs, NACK de NACKs ni error de errores. Reintentos siempre con tope y backoff.
 - Nunca subir `.env` ni `.pem` a ningún repo.
+- Los requisitos no variables de la E0 siguen vigentes: /history paginado y filtrable, contenedores master y connector con HEALTHCHECK, Nginx en el host.
 
 ## Decisiones de arquitectura
 
