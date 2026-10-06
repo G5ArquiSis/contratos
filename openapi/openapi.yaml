@@ -3,6 +3,11 @@ info:
   title: EnergyShark E1 API
   version: 0.1.0
   description: API HTTP del backend. Los endpoints de RF01, RF02, RF04 y RF05 se agregan acá antes de implementarse.
+servers:
+  - url: https://api.melchort.me
+    description: Producción (API Gateway)
+  - url: http://127.0.0.1:8001
+    description: Local (master-1)
 paths:
   /health:
     get:
