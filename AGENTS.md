@@ -31,6 +31,42 @@ negocia energía con la central y reporta su posición al cierre de cada ciclo.
 - Nunca subir `.env` ni `.pem` a ningún repo.
 - Los requisitos no variables de la E0 siguen vigentes: /history paginado y filtrable, contenedores master y connector con HEALTHCHECK, Nginx en el host.
 
+## Registro de uso de IA
+
+El enunciado (RDOC02) pide AI logs "acordes al uso real", con prompts y flujos relevantes por
+integrante, o una declaración explícita de no-uso. El curso no entrega un formato: este es el del
+grupo y se usa igual en `backend` y `frontend`.
+
+**Dónde.** Un archivo por integrante: `docs/ai-logs/<usuario-github>.md`, en el repo donde quedó
+el trabajo. Lo que se haga en `contratos` se registra en `backend`.
+
+**Qué se registra.**
+
+| Tipo de uso | Qué se hace |
+|---|---|
+| Agéntico (la IA escribe en el codebase) | Una entrada por tarea, siempre |
+| Chat | Una entrada solo si influyó en una decisión o en código que quedó en el repo |
+| Autocompletado | Se declara una vez en el encabezado del archivo, sin entradas |
+| Ninguno | El archivo existe igual, con la frase "Declaro no haber usado IA en esta entrega." |
+
+**Cuándo.** La entrada va en el mismo PR que el trabajo que registra, no al final de la entrega.
+
+**Formato de cada entrada** (plantilla en `docs/ai-logs/_plantilla.md` de cada repo):
+
+```markdown
+## AAAA-MM-DD — Título corto de la tarea
+
+- **Herramienta y modo:** herramienta, modelo y modo (agéntico, chat o autocompletado).
+- **Tarea:** qué se quería lograr, en una línea.
+- **Prompts relevantes:** citados textualmente; solo los que definieron el resultado.
+- **Qué produjo la IA:** archivos, recursos o decisiones que salieron de ahí.
+- **Verificación:** cómo se comprobó que funciona (tests, CI, prueba manual).
+- **Correcciones del integrante:** qué se rechazó, corrigió o cambió de lo propuesto.
+- **Referencia:** PR o commits.
+```
+
+Los prompts se citan sin secretos: nunca credenciales, tokens ni contenido de un `.env`.
+
 ## Decisiones de arquitectura
 
 Ver los ADRs en `backend/docs/adr/` (AD1 topología del consumo, AD2 persistencia del ledger,
