@@ -9,7 +9,7 @@ Nodo de energía de una ciudad para la E1 de IIC2173. Se comunica con la central
 (cola y routing key `city.{CODE}`), mantiene su propio ledger (budget y balance energético),
 negocia energía con la central y reporta su posición al cierre de cada ciclo.
 
-- Ciudad asignada: <!-- completar -->
+- Ciudad asignada: Talca, código `TAL`. Donde este documento dice `{CODE}`, en nuestro nodo es `TAL` (cola `city.TAL`).
 - Ciclo: 2 horas; ventana de negociación en los últimos 20 minutos; `negotiation-report` en los
   últimos 5 minutos de la ventana.
 
@@ -21,6 +21,14 @@ negocia energía con la central y reporta su posición al cierre de cada ciclo.
 | `frontend` | SPA (React + Vite), servida desde S3 + CloudFront |
 | `contratos` | Este repo: schemas de mensajes, OpenAPI, este archivo |
 
+## URLs de producción
+
+| URL | Qué es |
+|---|---|
+| https://app.melchort.me | Frontend (S3 + CloudFront) |
+| https://api.melchort.me | API, detrás de API Gateway. Es la única que usa el frontend |
+| https://melchort.me | El backend directo por Nginx; se mantiene por la E0 y es el origen del gateway |
+
 ## Reglas que no se rompen
 
 - Todo mensaje publicado lleva la propiedad AMQP `user_id = city.{CODE}` y `cityId` en el cuerpo.
@@ -29,6 +37,8 @@ negocia energía con la central y reporta su posición al cierre de cada ciclo.
 - Un `idpk` ya aplicado nunca se vuelve a aplicar al ledger, pero se registra como duplicado.
 - No se hace ACK de ACKs, NACK de NACKs ni error de errores. Reintentos siempre con tope y backoff.
 - Nunca subir `.env` ni `.pem` a ningún repo.
+- El CORS lo configura API Gateway. El backend no agrega headers de CORS (nada de `CORSMiddleware`):
+  duplicados, el navegador rechaza la respuesta. Un origen nuevo se pide al rol de deploy.
 - Los requisitos no variables de la E0 siguen vigentes: /history paginado y filtrable, contenedores master y connector con HEALTHCHECK, Nginx en el host.
 
 ## Registro de uso de IA
