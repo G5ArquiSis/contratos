@@ -9,7 +9,7 @@ Nodo de energía de una ciudad para la E1 de IIC2173. Se comunica con la central
 (cola y routing key `city.{CODE}`), mantiene su propio ledger (budget y balance energético),
 negocia energía con la central y reporta su posición al cierre de cada ciclo.
 
-- Ciudad asignada: <!-- completar -->
+- Ciudad asignada: Talca, código `TAL`. Donde este documento dice `{CODE}`, en nuestro nodo es `TAL` (cola `city.TAL`).
 - Ciclo: 2 horas; ventana de negociación en los últimos 20 minutos; `negotiation-report` en los
   últimos 5 minutos de la ventana.
 
