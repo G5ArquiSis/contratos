@@ -25,11 +25,495 @@ paths:
                   status:
                     type: string
                     example: ok
+
+  /cycles:
+    get:
+      summary: Historial de ciclos (RF01)
+      description: Retorna el listado paginado de ciclos con sus balances, statements, transferencias y última operación aplicada.
+      tags:
+        - Cycles
+      parameters:
+        - name: page
+          in: query
+          description: Número de página (1-indexed)
+          required: false
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: limit
+          in: query
+          description: Cantidad de ciclos por página
+          required: false
+          schema:
+            type: integer
+            default: 25
+            minimum: 1
+            maximum: 100
+      responses:
+        "200":
+          description: Historial de ciclos obtenido exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedCycles"
+        "401":
+          description: Token no provisto o inválido
+        "500":
+          description: Error interno del servidor
+
+  /cycles/{cycleId}:
+    get:
+      summary: Detalle de un ciclo (RF01)
+      description: Retorna la información completa y explicable de un ciclo específico.
+      tags:
+        - Cycles
+      parameters:
+        - name: cycleId
+          in: path
+          required: true
+          description: Identificador ordinal del ciclo (e.g. cycle-9431)
+          schema:
+            type: string
+            example: cycle-9431
+      responses:
+        "200":
+          description: Detalle del ciclo obtenido exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CycleDetail"
+        "401":
+          description: Token no provisto o inválido
+        "404":
+          description: Ciclo no encontrado
+        "500":
+          description: Error interno del servidor
+
+  /message-log:
+    get:
+      summary: Registro de mensajes (RF05)
+      description: Retorna el listado paginado de mensajes duplicados, descartados o respondidos con NACK para Messages.jsx.
+      tags:
+        - Messages
+      parameters:
+        - name: page
+          in: query
+          description: Número de página (1-indexed)
+          required: false
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: limit
+          in: query
+          description: Cantidad de mensajes por página
+          required: false
+          schema:
+            type: integer
+            default: 25
+            minimum: 1
+            maximum: 100
+        - name: category
+          in: query
+          description: Filtro opcional por categoría
+          required: false
+          schema:
+            type: string
+            enum: [duplicate, discarded, nack]
+      responses:
+        "200":
+          description: Registro de mensajes obtenido exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedMessageLogs"
+        "401":
+          description: Token no provisto o inválido
+        "500":
+          description: Error interno del servidor
+
 components:
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
+
+  schemas:
+    PaginatedCycles:
+      type: object
+      required:
+        - items
+        - total
+        - page
+        - limit
+        - pages
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/CycleDetail"
+        total:
+          type: integer
+          description: Cantidad total de ciclos registrados
+          example: 48
+        page:
+          type: integer
+          description: Página actual
+          example: 1
+        limit:
+          type: integer
+          description: Límite por página
+          example: 25
+        pages:
+          type: integer
+          description: Total de páginas disponibles
+          example: 2
+
+    CycleDetail:
+      type: object
+      required:
+        - cycleId
+        - isClosed
+        - finalBalances
+      properties:
+        cycleId:
+          type: string
+          description: Identificador ordinal del ciclo
+          example: cycle-9431
+        isClosed:
+          type: boolean
+          description: Indica si el ciclo ya cerró su ventana de negociación y reportó a la central
+          example: true
+        opened:
+          type: boolean
+          description: Indica si el ciclo se encuentra abierto (lo que consume el frontend)
+          example: false
+        balances:
+          $ref: "#/components/schemas/BalancesInfo"
+        finalBalances:
+          $ref: "#/components/schemas/BalancesInfo"
+        energyBalance:
+          type: integer
+          example: 1232
+        budgetBalance:
+          type: number
+          example: 131212.0
+        statusStatement:
+          $ref: "#/components/schemas/StatusStatementInfo"
+        transfers:
+          type: array
+          description: Fondos recibidos por transferencias de la central
+          items:
+            $ref: "#/components/schemas/TransferInfo"
+        totalTransferredBudget:
+          type: number
+          description: Total de créditos transferidos por la central en este ciclo
+          example: 508145.0
+        demandStatements:
+          type: array
+          description: Lista de demand-statement aplicados sobre este ciclo
+          items:
+            $ref: "#/components/schemas/DemandStatementInfo"
+        negotiations:
+          type: array
+          description: Negociaciones del ciclo para la interfaz
+          items:
+            $ref: "#/components/schemas/VoluntaryNegotiationInfo"
+        voluntaryNegotiations:
+          type: array
+          description: Lista de negociaciones voluntarias realizadas
+          items:
+            $ref: "#/components/schemas/VoluntaryNegotiationInfo"
+        operations:
+          type: array
+          description: Lista de operaciones aplicadas para la vista de ledger
+          items:
+            $ref: "#/components/schemas/OperationItem"
+        lastOperationIdpk:
+          type: string
+          nullable: true
+          example: "3b0821f4-52bc-440f-90be-d227b61f4fa8"
+        lastOperation:
+          $ref: "#/components/schemas/LastOperationInfo"
+        report:
+          $ref: "#/components/schemas/NegotiationReportInfo"
+        negotiationReport:
+          $ref: "#/components/schemas/NegotiationReportInfo"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-09-01T12:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2026-09-01T14:00:00Z"
+
+    StatusStatementInfo:
+      type: object
+      nullable: true
+      properties:
+        generationCapacity:
+          type: integer
+          description: Capacidad de generación en kWh
+          example: 1234512
+        consumption:
+          type: integer
+          description: Consumo proyectado en kWh
+          example: 1444121
+        generationCost:
+          type: number
+          description: Costo de generación en créditos por kWh
+          example: 210.0
+        validUntil:
+          type: string
+          format: date-time
+          example: "2026-09-01T14:20:00Z"
+        receivedAt:
+          type: string
+          format: date-time
+          example: "2026-09-01T12:00:05Z"
+
+    TransferInfo:
+      type: object
+      required:
+        - idpk
+        - quantity
+      properties:
+        idpk:
+          type: string
+          description: Llave de idempotencia del transfer
+          example: "7e584f33-7221-4d32-9cb5-bb5083f2fa10"
+        msgId:
+          type: string
+          description: Identificador del mensaje
+          example: "86725356-91e8-466a-bfe0-fa40dbbc034d"
+        quantity:
+          type: number
+          description: Monto neto transferido en créditos
+          example: 508145.0
+        penalty:
+          type: number
+          nullable: true
+          description: Descuento aplicado por multa (e.g. reporte tardío)
+          example: 0.0
+        becauseOf:
+          type: string
+          nullable: true
+          description: Referencia si el pago proviene de una confirmación previa
+          example: null
+        receivedAt:
+          type: string
+          format: date-time
+          example: "2026-09-01T12:01:10Z"
+
+    DemandStatementInfo:
+      type: object
+      required:
+        - idpk
+        - quantity
+        - valuePerKwh
+      properties:
+        idpk:
+          type: string
+          description: Llave de idempotencia del demand-statement
+          example: "3b0821f4-52bc-440f-90be-d227b61f4fa8"
+        msgId:
+          type: string
+          example: "e6f47703-a417-4835-b286-9a296582fe93"
+        quantity:
+          type: integer
+          description: Cantidad de energía (>0 central entrega, <0 central retira) en kWh
+          example: 1500
+        valuePerKwh:
+          type: number
+          description: Valor acordado por kWh
+          example: 215.0
+        deltaBudget:
+          type: number
+          description: Impacto en el presupuesto (- si quantity > 0, + si quantity < 0)
+          example: -322500.0
+        deltaEnergy:
+          type: integer
+          description: Impacto en el balance de energía (+ si quantity > 0, - si quantity < 0)
+          example: 1500
+        appliedAt:
+          type: string
+          format: date-time
+          example: "2026-09-01T12:15:00Z"
+
+    VoluntaryNegotiationInfo:
+      type: object
+      required:
+        - idpk
+        - direction
+        - quantity
+        - pricePerEnergy
+        - status
+      properties:
+        idpk:
+          type: string
+          description: Llave de idempotencia de la propuesta original
+          example: "c79ef532-68bb-4a57-b43e-c6b659c2efea"
+        direction:
+          type: string
+          enum: [give, take]
+          description: give entrega energía / take recibe energía
+          example: take
+        quantity:
+          type: integer
+          description: Cantidad negociada en kWh
+          example: 2024
+        pricePerEnergy:
+          type: number
+          description: Precio unitario pactado
+          example: 210.0
+        status:
+          type: string
+          enum: [pending, confirmed, paid, expired]
+          description: Estado del ciclo de vida de la negociación
+          example: paid
+        updatedAt:
+          type: string
+          format: date-time
+          example: "2026-09-01T12:30:45Z"
+
+    NegotiationReportInfo:
+      type: object
+      nullable: true
+      properties:
+        budgetBalance:
+          type: number
+          description: Presupuesto reportado al cierre de la ventana
+          example: 131212.0
+        energyBalance:
+          type: integer
+          description: Balance de energía reportado
+          example: 1232
+        submittedAt:
+          type: string
+          format: date-time
+          example: "2026-09-01T13:56:00Z"
+
+    BalancesInfo:
+      type: object
+      required:
+        - budget
+        - energy
+      properties:
+        budget:
+          type: number
+          description: Saldo actual o final de créditos acumulados
+          example: 131212.0
+        energy:
+          type: integer
+          description: Saldo de energía del ciclo en kWh
+          example: 1232
+
+    LastOperationInfo:
+      type: object
+      nullable: true
+      required:
+        - idpk
+        - type
+        - appliedAt
+      properties:
+        idpk:
+          type: string
+          description: Llave de idempotencia de la última operación aplicada
+          example: "3b0821f4-52bc-440f-90be-d227b61f4fa8"
+        type:
+          type: string
+          description: Tipo de operación (demand-statement, transfer, negotiation-trade, etc.)
+          example: demand-statement
+        appliedAt:
+          type: string
+          format: date-time
+          example: "2026-09-01T13:45:00Z"
+        description:
+          type: string
+          description: Resumen legible de la operación
+          example: "demand-statement aplicado: +1500 kWh, -322500 créditos"
+
+    OperationItem:
+      type: object
+      required:
+        - idpk
+        - kind
+        - appliedAt
+      properties:
+        idpk:
+          type: string
+          example: "3b0821f4-52bc-440f-90be-d227b61f4fa8"
+        kind:
+          type: string
+          example: "demand-statement"
+        isLast:
+          type: boolean
+          example: true
+        appliedAt:
+          type: string
+          format: date-time
+          example: "2026-09-01T13:45:00Z"
+
+    MessageLogItem:
+      type: object
+      required:
+        - id
+        - category
+        - receivedAt
+      properties:
+        id:
+          type: integer
+          example: 1
+        category:
+          type: string
+          enum: [duplicate, discarded, nack]
+          example: duplicate
+        messageType:
+          type: string
+          nullable: true
+          example: "demand-statement"
+        idpk:
+          type: string
+          nullable: true
+          example: "3b0821f4-52bc-440f-90be-d227b61f4fa8"
+        reason:
+          type: string
+          nullable: true
+          example: "DUPLICATE_IDPK"
+        receivedAt:
+          type: string
+          format: date-time
+          example: "2026-09-01T13:45:00Z"
+
+    PaginatedMessageLogs:
+      type: object
+      required:
+        - items
+        - total
+        - page
+        - limit
+        - pages
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/MessageLogItem"
+        total:
+          type: integer
+          example: 12
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 25
+        pages:
+          type: integer
+          example: 1
+
 security:
   - bearerAuth: []
+
