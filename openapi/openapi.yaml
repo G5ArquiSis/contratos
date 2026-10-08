@@ -90,6 +90,49 @@ paths:
         "500":
           description: Error interno del servidor
 
+  /message-log:
+    get:
+      summary: Registro de mensajes (RF05)
+      description: Retorna el listado paginado de mensajes duplicados, descartados o respondidos con NACK para Messages.jsx.
+      tags:
+        - Messages
+      parameters:
+        - name: page
+          in: query
+          description: Número de página (1-indexed)
+          required: false
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: limit
+          in: query
+          description: Cantidad de mensajes por página
+          required: false
+          schema:
+            type: integer
+            default: 25
+            minimum: 1
+            maximum: 100
+        - name: category
+          in: query
+          description: Filtro opcional por categoría
+          required: false
+          schema:
+            type: string
+            enum: [duplicate, discarded, nack]
+      responses:
+        "200":
+          description: Registro de mensajes obtenido exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaginatedMessageLogs"
+        "401":
+          description: Token no provisto o inválido
+        "500":
+          description: Error interno del servidor
+
 components:
   securitySchemes:
     bearerAuth:
@@ -143,6 +186,20 @@ components:
           type: boolean
           description: Indica si el ciclo ya cerró su ventana de negociación y reportó a la central
           example: true
+        opened:
+          type: boolean
+          description: Indica si el ciclo se encuentra abierto (lo que consume el frontend)
+          example: false
+        balances:
+          $ref: "#/components/schemas/BalancesInfo"
+        finalBalances:
+          $ref: "#/components/schemas/BalancesInfo"
+        energyBalance:
+          type: integer
+          example: 1232
+        budgetBalance:
+          type: number
+          example: 131212.0
         statusStatement:
           $ref: "#/components/schemas/StatusStatementInfo"
         transfers:
@@ -159,17 +216,31 @@ components:
           description: Lista de demand-statement aplicados sobre este ciclo
           items:
             $ref: "#/components/schemas/DemandStatementInfo"
+        negotiations:
+          type: array
+          description: Negociaciones del ciclo para la interfaz
+          items:
+            $ref: "#/components/schemas/VoluntaryNegotiationInfo"
         voluntaryNegotiations:
           type: array
           description: Lista de negociaciones voluntarias realizadas
           items:
             $ref: "#/components/schemas/VoluntaryNegotiationInfo"
-        negotiationReport:
-          $ref: "#/components/schemas/NegotiationReportInfo"
-        finalBalances:
-          $ref: "#/components/schemas/BalancesInfo"
+        operations:
+          type: array
+          description: Lista de operaciones aplicadas para la vista de ledger
+          items:
+            $ref: "#/components/schemas/OperationItem"
+        lastOperationIdpk:
+          type: string
+          nullable: true
+          example: "3b0821f4-52bc-440f-90be-d227b61f4fa8"
         lastOperation:
           $ref: "#/components/schemas/LastOperationInfo"
+        report:
+          $ref: "#/components/schemas/NegotiationReportInfo"
+        negotiationReport:
+          $ref: "#/components/schemas/NegotiationReportInfo"
         createdAt:
           type: string
           format: date-time
@@ -365,5 +436,84 @@ components:
           description: Resumen legible de la operación
           example: "demand-statement aplicado: +1500 kWh, -322500 créditos"
 
+    OperationItem:
+      type: object
+      required:
+        - idpk
+        - kind
+        - appliedAt
+      properties:
+        idpk:
+          type: string
+          example: "3b0821f4-52bc-440f-90be-d227b61f4fa8"
+        kind:
+          type: string
+          example: "demand-statement"
+        isLast:
+          type: boolean
+          example: true
+        appliedAt:
+          type: string
+          format: date-time
+          example: "2026-09-01T13:45:00Z"
+
+    MessageLogItem:
+      type: object
+      required:
+        - id
+        - category
+        - receivedAt
+      properties:
+        id:
+          type: integer
+          example: 1
+        category:
+          type: string
+          enum: [duplicate, discarded, nack]
+          example: duplicate
+        messageType:
+          type: string
+          nullable: true
+          example: "demand-statement"
+        idpk:
+          type: string
+          nullable: true
+          example: "3b0821f4-52bc-440f-90be-d227b61f4fa8"
+        reason:
+          type: string
+          nullable: true
+          example: "DUPLICATE_IDPK"
+        receivedAt:
+          type: string
+          format: date-time
+          example: "2026-09-01T13:45:00Z"
+
+    PaginatedMessageLogs:
+      type: object
+      required:
+        - items
+        - total
+        - page
+        - limit
+        - pages
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/MessageLogItem"
+        total:
+          type: integer
+          example: 12
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 25
+        pages:
+          type: integer
+          example: 1
+
 security:
   - bearerAuth: []
+
