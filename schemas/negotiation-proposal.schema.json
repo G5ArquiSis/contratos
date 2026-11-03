@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/G5ArquiSis/contratos/schemas/negotiation-proposal.schema.json",
+  "title": "Negotiation-proposal",
+  "description": "Propuesta voluntaria de la ciudad. Cada reintento lleva msgId nuevo e idpk igual.",
+  "allOf": [
+    {
+      "$ref": "envelope.schema.json"
+    }
+  ],
+  "type": "object",
+  "required": [
+    "cityId",
+    "cycleId",
+    "data"
+  ],
+  "properties": {
+    "type": {
+      "const": "negotiation-proposal"
+    },
+    "data": {
+      "type": "object",
+      "required": [
+        "direction",
+        "quantity",
+        "pricePerEnergy"
+      ],
+      "properties": {
+        "direction": {
+          "enum": [
+            "give",
+            "take"
+          ],
+          "description": "give vende energía, take la compra"
+        },
+        "quantity": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "kWh"
+        },
+        "pricePerEnergy": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "No puede superar el tope del ciclo"
+        }
+      }
+    }
+  }
+}

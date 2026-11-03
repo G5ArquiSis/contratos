@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/G5ArquiSis/contratos/schemas/envelope.schema.json",
+  "title": "Envelope v2",
+  "description": "Campos comunes a todo mensaje. Sin msgId o sin JSON parseable se descarta y se registra; si faltan los demás campos obligatorios se responde NACK.",
+  "type": "object",
+  "required": [
+    "idpk",
+    "msgId",
+    "type",
+    "timestamp",
+    "data"
+  ],
+  "properties": {
+    "idpk": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Llave de idempotencia; igual en reintentos de la misma operación"
+    },
+    "msgId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "UUID nuevo en cada envío; las respuestas lo citan en data.target"
+    },
+    "type": {
+      "enum": [
+        "ack",
+        "nack",
+        "error",
+        "status-statement",
+        "transfer",
+        "demand-statement",
+        "distance-table",
+        "give",
+        "take",
+        "negotiation-proposal",
+        "negotiation-report",
+        "request"
+      ]
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "cityId": {
+      "type": "string",
+      "pattern": "^[A-Z0-9]{3}$",
+      "description": "code de la ciudad emisora"
+    },
+    "sender": {
+      "const": "central",
+      "description": "Lo llevan todos los mensajes de la central"
+    },
+    "cycleId": {
+      "type": "string",
+      "description": "Ciclo al que pertenece la operación"
+    },
+    "data": {
+      "type": "object"
+    }
+  }
+}

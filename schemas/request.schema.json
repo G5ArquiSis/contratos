@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/G5ArquiSis/contratos/schemas/request.schema.json",
+  "title": "Request",
+  "description": "Petición directa a la central; no está ligada a un ciclo.",
+  "allOf": [
+    {
+      "$ref": "envelope.schema.json"
+    }
+  ],
+  "type": "object",
+  "required": [
+    "cityId",
+    "data"
+  ],
+  "properties": {
+    "type": {
+      "const": "request"
+    },
+    "data": {
+      "type": "object",
+      "required": [
+        "ask"
+      ],
+      "properties": {
+        "ask": {
+          "type": "string",
+          "examples": [
+            "status-statement",
+            "distance-table"
+          ]
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/G5ArquiSis/contratos/schemas/status-statement.schema.json",
+  "title": "Status-statement",
+  "description": "Abre el ciclo: capacidad, consumo, costo y fin de la ventana.",
+  "allOf": [
+    {
+      "$ref": "envelope.schema.json"
+    }
+  ],
+  "type": "object",
+  "required": [
+    "sender",
+    "cycleId",
+    "data"
+  ],
+  "properties": {
+    "type": {
+      "const": "status-statement"
+    },
+    "data": {
+      "type": "object",
+      "required": [
+        "energy",
+        "validUntil"
+      ],
+      "properties": {
+        "energy": {
+          "type": "object",
+          "required": [
+            "generationCapacity",
+            "consumption",
+            "generationCost"
+          ],
+          "properties": {
+            "generationCapacity": {
+              "type": "number",
+              "minimum": 0,
+              "description": "kWh"
+            },
+            "consumption": {
+              "type": "number",
+              "minimum": 0,
+              "description": "kWh"
+            },
+            "generationCost": {
+              "type": "number",
+              "minimum": 0,
+              "description": "créditos por kWh; el tope de precio es round2(1.05 × generationCost)"
+            }
+          }
+        },
+        "validUntil": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/G5ArquiSis/contratos/schemas/transfer.schema.json",
+  "title": "Transfer",
+  "description": "Créditos. De la central: presupuesto del ciclo o pago de un give. Nuestro: pago de un take.",
+  "allOf": [
+    {
+      "$ref": "envelope.schema.json"
+    }
+  ],
+  "type": "object",
+  "required": [
+    "cycleId",
+    "data"
+  ],
+  "properties": {
+    "type": {
+      "const": "transfer"
+    },
+    "data": {
+      "type": "object",
+      "required": [
+        "quantity"
+      ],
+      "properties": {
+        "quantity": {
+          "type": "number",
+          "description": "Monto en créditos (neto de penalty)"
+        },
+        "penalty": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Multa descontada, por ejemplo por reporte tardío"
+        },
+        "becauseOf": {
+          "type": "string",
+          "minLength": 1,
+          "description": "msgId de la confirmación give/take que paga"
+        }
+      }
+    }
+  }
+}
