@@ -1,519 +1,1093 @@
 openapi: 3.1.0
 info:
   title: EnergyShark E1 API
-  version: 0.1.0
-  description: API HTTP del backend. Los endpoints de RF01, RF02, RF04 y RF05 se agregan acá antes de implementarse.
-servers:
-  - url: https://api.melchort.me
-    description: Producción (API Gateway)
-  - url: http://127.0.0.1:8001
-    description: Local (master-1)
+  version: 1.0.0
+  description: |
+    API HTTP pública del nodo de Talca (TAL). La interfaz la consume solo a través de API
+    Gateway (`https://api.melchort.me`), que exige un JWT de Auth0 y agrega los headers CORS.
+
+    - RF01: `/cycles` y `/cycles/{cycle_id}`
+    - RF02: `/connectivity`
+    - RF04: `/negotiations`
+    - RF05: `/message-log`
+    - E0: `/history`
+
+    Los endpoints `/internal/*` (contrato entre connector y master) quedan fuera de este archivo:
+    están documentados en `backend/docs/ciclo-negociacion.md` y Nginx los bloquea.
+
+    Archivo generado con `backend/scripts/exportar_openapi.py`; no se edita a mano.
 paths:
   /health:
     get:
+      tags:
+      - health
       summary: Estado del servicio
-      description: Responde 200 solo si el backend puede hablar con Postgres.
-      security: []
+      description: |-
+        Responde 200 solo si el servicio puede hablar con Postgres.
+
+        No consulta al broker a propósito: master debe seguir reportándose sano y
+        atendiendo el historial aunque RabbitMQ esté caído (RNF1).
+      operationId: read_health_health_get
       responses:
-        "200":
-          description: Servicio sano
+        '200':
+          description: Respuesta correcta
           content:
             application/json:
               schema:
+                additionalProperties:
+                  type: string
                 type: object
-                properties:
-                  status:
-                    type: string
-                    example: ok
+                title: Response Read Health Health Get
+      security: []
+  /history:
+    get:
+      tags:
+      - history
+      summary: Historial de demand-set de la E0, paginado y filtrable
+      description: |-
+        Historial paginado y filtrable (RF1, RF3, RF4).
 
+        Ambos modelos se declaran con Depends() y no con Query(): FastAPI expande un
+        solo modelo Query() por endpoint, y con dos dejaría de publicar `page`,
+        `limit` y los filtros como parámetros sueltos.
+      operationId: list_history_history_get
+      parameters:
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+          title: Page
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 25
+          title: Limit
+      - name: idpk
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Idpk
+      - name: type
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Type
+      - name: receivedAt
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Receivedat
+      - name: validUntil
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Validuntil
+      - name: city
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: City
+      - name: unit
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Unit
+      responses:
+        '200':
+          description: Respuesta correcta
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedHistory'
+        '422':
+          description: Parámetros o cuerpo inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '401':
+          description: Falta el token de Auth0 o no es válido (lo responde API Gateway)
+  /history/{event_id}:
+    get:
+      tags:
+      - history
+      summary: Detalle de un evento demand-set de la E0
+      description: |-
+        Detalle de un evento por el id generado por el sistema (RF2).
+
+        Responde 404 si el id no existe.
+      operationId: read_history_entry_history__event_id__get
+      parameters:
+      - name: event_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Event Id
+      responses:
+        '200':
+          description: Respuesta correcta
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DemandEventOut'
+        '422':
+          description: Parámetros o cuerpo inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '401':
+          description: Falta el token de Auth0 o no es válido (lo responde API Gateway)
+        '404':
+          description: Evento no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetail'
+  /negotiations:
+    post:
+      tags:
+      - negotiations
+      summary: Crear una propuesta de negociación (RF04)
+      description: |-
+        Crea una propuesta para el ciclo abierto; se publica a la central en segundos.
+
+        Responde 409 con el motivo si no hay ventana abierta, si el precio supera el
+        tope o si un `give` excede la energía vendible.
+      operationId: propose_negotiation_negotiations_post
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NegotiationIn'
+      responses:
+        '201':
+          description: Respuesta correcta
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NegotiationOut'
+        '422':
+          description: Parámetros o cuerpo inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '401':
+          description: Falta el token de Auth0 o no es válido (lo responde API Gateway)
+        '409':
+          description: No hay ventana abierta, el precio supera el tope o el give excede lo vendible
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NegotiationConflict'
+    get:
+      tags:
+      - negotiations
+      summary: Historial de negociaciones (RF04)
+      description: 'Historial de negociaciones con su estado: pending, confirmed, paid, expired o rejected.'
+      operationId: list_negotiation_history_negotiations_get
+      parameters:
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+          title: Page
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 25
+          title: Limit
+      responses:
+        '200':
+          description: Respuesta correcta
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NegotiationOut'
+                title: Response List Negotiation History Negotiations Get
+        '422':
+          description: Parámetros o cuerpo inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '401':
+          description: Falta el token de Auth0 o no es válido (lo responde API Gateway)
+  /negotiations/{negotiation_id}:
+    get:
+      tags:
+      - negotiations
+      summary: Detalle de una negociación (RF04)
+      operationId: read_negotiation_negotiations__negotiation_id__get
+      parameters:
+      - name: negotiation_id
+        in: path
+        required: true
+        schema:
+          type: integer
+          title: Negotiation Id
+      responses:
+        '200':
+          description: Respuesta correcta
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NegotiationOut'
+        '422':
+          description: Parámetros o cuerpo inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '401':
+          description: Falta el token de Auth0 o no es válido (lo responde API Gateway)
+        '404':
+          description: Negociación no encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetail'
   /cycles:
     get:
-      summary: Historial de ciclos (RF01)
-      description: Retorna el listado paginado de ciclos con sus balances, statements, transferencias y última operación aplicada.
       tags:
-        - Cycles
+      - negotiations
+      summary: Ciclos con su balance y el presupuesto actual (RF01)
+      description: Ciclos del más reciente al más antiguo, con su balance y el presupuesto actual.
+      operationId: list_cycle_ledger_cycles_get
       parameters:
-        - name: page
-          in: query
-          description: Número de página (1-indexed)
-          required: false
-          schema:
-            type: integer
-            default: 1
-            minimum: 1
-        - name: limit
-          in: query
-          description: Cantidad de ciclos por página
-          required: false
-          schema:
-            type: integer
-            default: 25
-            minimum: 1
-            maximum: 100
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+          title: Page
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 25
+          title: Limit
       responses:
-        "200":
-          description: Historial de ciclos obtenido exitosamente
+        '200':
+          description: Respuesta correcta
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/PaginatedCycles"
-        "401":
-          description: Token no provisto o inválido
-        "500":
-          description: Error interno del servidor
-
-  /cycles/{cycleId}:
+                $ref: '#/components/schemas/CycleList'
+        '422':
+          description: Parámetros o cuerpo inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '401':
+          description: Falta el token de Auth0 o no es válido (lo responde API Gateway)
+  /cycles/{cycle_id}:
     get:
-      summary: Detalle de un ciclo (RF01)
-      description: Retorna la información completa y explicable de un ciclo específico.
       tags:
-        - Cycles
+      - negotiations
+      summary: Historial completo de un ciclo (RF01)
+      description: |-
+        Historial de un ciclo (RF01): lo recibido, lo negociado, lo reportado y los balances.
+
+        `operations` trae todo en el orden en que se aplicó; la última lleva
+        `isLast: true`, y su idpk se repite en `lastOperationIdpk`.
+      operationId: read_cycle_cycles__cycle_id__get
       parameters:
-        - name: cycleId
-          in: path
-          required: true
-          description: Identificador ordinal del ciclo (e.g. cycle-9431)
-          schema:
-            type: string
-            example: cycle-9431
+      - name: cycle_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Cycle Id
       responses:
-        "200":
-          description: Detalle del ciclo obtenido exitosamente
+        '200':
+          description: Respuesta correcta
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/CycleDetail"
-        "401":
-          description: Token no provisto o inválido
-        "404":
+                $ref: '#/components/schemas/CycleDetail'
+        '422':
+          description: Parámetros o cuerpo inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '401':
+          description: Falta el token de Auth0 o no es válido (lo responde API Gateway)
+        '404':
           description: Ciclo no encontrado
-        "500":
-          description: Error interno del servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDetail'
+  /connectivity:
+    get:
+      tags:
+      - negotiations
+      summary: Distance-table vigente (RF02)
+      description: |-
+        La distance-table vigente (RF02): destino, distancia, costo de transporte y estado.
 
+        Refleja la última que publicó la central. Antes de la primera, responde una
+        lista vacía en vez de 404: la interfaz muestra "sin datos", no un error.
+      operationId: read_connectivity_connectivity_get
+      responses:
+        '200':
+          description: Respuesta correcta
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Connectivity'
+        '401':
+          description: Falta el token de Auth0 o no es válido (lo responde API Gateway)
   /message-log:
     get:
-      summary: Registro de mensajes (RF05)
-      description: Retorna el listado paginado de mensajes duplicados, descartados o respondidos con NACK para Messages.jsx.
       tags:
-        - Messages
+      - negotiations
+      summary: Mensajes duplicados, descartados o con NACK (RF05)
+      description: Mensajes duplicados, descartados y respondidos con NACK (RF05), paginados.
+      operationId: list_unapplied_messages_message_log_get
       parameters:
-        - name: page
-          in: query
-          description: Número de página (1-indexed)
-          required: false
-          schema:
-            type: integer
-            default: 1
-            minimum: 1
-        - name: limit
-          in: query
-          description: Cantidad de mensajes por página
-          required: false
-          schema:
-            type: integer
-            default: 25
-            minimum: 1
-            maximum: 100
-        - name: category
-          in: query
-          description: Filtro opcional por categoría
-          required: false
-          schema:
+      - name: category
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - enum:
+            - duplicate
+            - discarded
+            - nack
             type: string
-            enum: [duplicate, discarded, nack]
+          - type: 'null'
+          description: Filtra por tipo de registro
+          title: Category
+        description: Filtra por tipo de registro
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+          title: Page
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 25
+          title: Limit
       responses:
-        "200":
-          description: Registro de mensajes obtenido exitosamente
+        '200':
+          description: Respuesta correcta
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/PaginatedMessageLogs"
-        "401":
-          description: Token no provisto o inválido
-        "500":
-          description: Error interno del servidor
-
+                $ref: '#/components/schemas/MessageLogPage'
+        '422':
+          description: Parámetros o cuerpo inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '401':
+          description: Falta el token de Auth0 o no es válido (lo responde API Gateway)
 components:
+  schemas:
+    Connection:
+      properties:
+        destination:
+          type: string
+          title: Destination
+        distance:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Distance
+        transportCost:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Transportcost
+        enabled:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Enabled
+      type: object
+      required:
+      - destination
+      - distance
+      - transportCost
+      - enabled
+      title: Connection
+      description: Ruta hacia otra ciudad, según la distance-table vigente.
+    Connectivity:
+      properties:
+        updatedAt:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Updatedat
+        connections:
+          items:
+            $ref: '#/components/schemas/Connection'
+          type: array
+          title: Connections
+      type: object
+      required:
+      - updatedAt
+      - connections
+      title: Connectivity
+      description: La distance-table vigente; `updatedAt` es nulo si la central aún no envió ninguna.
+    CycleBalances:
+      properties:
+        energy:
+          type: string
+          pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
+          title: Energy
+        budget:
+          type: string
+          pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
+          title: Budget
+      type: object
+      required:
+      - energy
+      - budget
+      title: CycleBalances
+      description: 'Balances finales del ciclo: la energía es propia; el presupuesto viene acumulado.'
+    CycleDetail:
+      properties:
+        cycleId:
+          type: string
+          title: Cycleid
+        opened:
+          type: boolean
+          title: Opened
+        validUntil:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Validuntil
+        statusStatement:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Statusstatement
+        transfers:
+          items:
+            $ref: '#/components/schemas/LedgerEventOut'
+          type: array
+          title: Transfers
+        demandStatements:
+          items:
+            $ref: '#/components/schemas/LedgerEventOut'
+          type: array
+          title: Demandstatements
+        negotiations:
+          items:
+            $ref: '#/components/schemas/NegotiationOut'
+          type: array
+          title: Negotiations
+        report:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Report
+        reportSentAt:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Reportsentat
+        reportError:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reporterror
+        balances:
+          $ref: '#/components/schemas/CycleBalances'
+        lastOperationIdpk:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Lastoperationidpk
+        operations:
+          items:
+            $ref: '#/components/schemas/LedgerEventOut'
+          type: array
+          title: Operations
+      type: object
+      required:
+      - cycleId
+      - opened
+      - validUntil
+      - statusStatement
+      - transfers
+      - demandStatements
+      - negotiations
+      - report
+      - reportSentAt
+      - reportError
+      - balances
+      - lastOperationIdpk
+      - operations
+      title: CycleDetail
+      description: Todo lo que pasó en un ciclo, en un solo documento (RF01).
+    CycleList:
+      properties:
+        budgetBalance:
+          type: string
+          pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
+          title: Budgetbalance
+        items:
+          items:
+            $ref: '#/components/schemas/CycleOut'
+          type: array
+          title: Items
+      type: object
+      required:
+      - budgetBalance
+      - items
+      title: CycleList
+      description: Últimos ciclos y el presupuesto actual, que se traspasa de un ciclo a otro.
+    CycleOut:
+      properties:
+        cycleId:
+          type: string
+          title: Cycleid
+        opened:
+          type: boolean
+          title: Opened
+        generationCapacity:
+          anyOf:
+          - type: string
+            pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
+          - type: 'null'
+          title: Generationcapacity
+        consumption:
+          anyOf:
+          - type: string
+            pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
+          - type: 'null'
+          title: Consumption
+        generationCost:
+          anyOf:
+          - type: string
+            pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
+          - type: 'null'
+          title: Generationcost
+        validUntil:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Validuntil
+        energyBalance:
+          type: string
+          pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
+          title: Energybalance
+        budgetDelta:
+          type: string
+          pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
+          title: Budgetdelta
+        lastOperationIdpk:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Lastoperationidpk
+        reportDueAt:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Reportdueat
+        reportSentAt:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Reportsentat
+        reportedBudget:
+          anyOf:
+          - type: string
+            pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
+          - type: 'null'
+          title: Reportedbudget
+        reportedEnergy:
+          anyOf:
+          - type: string
+            pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
+          - type: 'null'
+          title: Reportedenergy
+        reportError:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reporterror
+      type: object
+      required:
+      - cycleId
+      - opened
+      - generationCapacity
+      - consumption
+      - generationCost
+      - validUntil
+      - energyBalance
+      - budgetDelta
+      - lastOperationIdpk
+      - reportDueAt
+      - reportSentAt
+      - reportedBudget
+      - reportedEnergy
+      - reportError
+      title: CycleOut
+    DemandEventOut:
+      properties:
+        id:
+          type: integer
+          title: Id
+        idpk:
+          type: string
+          title: Idpk
+        type:
+          type: string
+          title: Type
+        receivedAt:
+          type: string
+          format: date-time
+          title: Receivedat
+        packageBody:
+          $ref: '#/components/schemas/PackageBody'
+      type: object
+      required:
+      - id
+      - idpk
+      - type
+      - receivedAt
+      - packageBody
+      title: DemandEventOut
+      description: Evento tal como lo devuelve la API, con todos los campos guardados (RF1).
+    DemandItem:
+      properties:
+        city:
+          type: string
+          title: City
+        demand:
+          type: number
+          title: Demand
+        unit:
+          type: string
+          title: Unit
+      type: object
+      required:
+      - city
+      - demand
+      - unit
+      title: DemandItem
+      description: Demanda de una ciudad dentro de un evento demand-set.
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    LedgerEventOut:
+      properties:
+        idpk:
+          type: string
+          title: Idpk
+        kind:
+          type: string
+          title: Kind
+        energyDelta:
+          type: string
+          pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
+          title: Energydelta
+        budgetDelta:
+          type: string
+          pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
+          title: Budgetdelta
+        appliedAt:
+          type: string
+          format: date-time
+          title: Appliedat
+        isLast:
+          type: boolean
+          title: Islast
+        message:
+          additionalProperties: true
+          type: object
+          title: Message
+      type: object
+      required:
+      - idpk
+      - kind
+      - energyDelta
+      - budgetDelta
+      - appliedAt
+      - isLast
+      - message
+      title: LedgerEventOut
+      description: Una operación aplicada al ledger dentro de un ciclo.
+    MessageLogEntry:
+      properties:
+        id:
+          type: integer
+          title: Id
+        category:
+          type: string
+          title: Category
+        idpk:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Idpk
+        msgId:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Msgid
+        messageType:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Messagetype
+        cycleId:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Cycleid
+        reason:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reason
+        rawContent:
+          type: string
+          title: Rawcontent
+        receivedAt:
+          type: string
+          format: date-time
+          title: Receivedat
+      type: object
+      required:
+      - id
+      - category
+      - idpk
+      - msgId
+      - messageType
+      - cycleId
+      - reason
+      - rawContent
+      - receivedAt
+      title: MessageLogEntry
+    MessageLogPage:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/MessageLogEntry'
+          type: array
+          title: Items
+        page:
+          type: integer
+          title: Page
+        limit:
+          type: integer
+          title: Limit
+        total:
+          type: integer
+          title: Total
+        pages:
+          type: integer
+          title: Pages
+      type: object
+      required:
+      - items
+      - page
+      - limit
+      - total
+      - pages
+      title: MessageLogPage
+    NegotiationIn:
+      properties:
+        direction:
+          type: string
+          enum:
+          - give
+          - take
+          title: Direction
+        quantity:
+          anyOf:
+          - type: number
+            exclusiveMinimum: 0.0
+          - type: string
+            pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
+          title: Quantity
+        pricePerEnergy:
+          anyOf:
+          - type: number
+            exclusiveMinimum: 0.0
+          - type: string
+            pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
+          - type: 'null'
+          title: Priceperenergy
+      type: object
+      required:
+      - direction
+      - quantity
+      title: NegotiationIn
+      description: Propuesta que crea el administrador. Sin precio, se oferta el tope del ciclo.
+    NegotiationOut:
+      properties:
+        id:
+          type: integer
+          title: Id
+        idpk:
+          type: string
+          title: Idpk
+        cycleId:
+          type: string
+          title: Cycleid
+        direction:
+          type: string
+          title: Direction
+        quantity:
+          type: string
+          pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
+          title: Quantity
+        pricePerEnergy:
+          type: string
+          pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
+          title: Priceperenergy
+        state:
+          type: string
+          title: State
+        attempts:
+          type: integer
+          title: Attempts
+        confirmedEnergy:
+          anyOf:
+          - type: string
+            pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
+          - type: 'null'
+          title: Confirmedenergy
+        confirmedPrice:
+          anyOf:
+          - type: string
+            pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
+          - type: 'null'
+          title: Confirmedprice
+        amount:
+          anyOf:
+          - type: string
+            pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
+          - type: 'null'
+          title: Amount
+        reason:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reason
+        createdAt:
+          type: string
+          format: date-time
+          title: Createdat
+        updatedAt:
+          type: string
+          format: date-time
+          title: Updatedat
+      type: object
+      required:
+      - id
+      - idpk
+      - cycleId
+      - direction
+      - quantity
+      - pricePerEnergy
+      - state
+      - attempts
+      - confirmedEnergy
+      - confirmedPrice
+      - amount
+      - reason
+      - createdAt
+      - updatedAt
+      title: NegotiationOut
+    PackageBody:
+      properties:
+        demands:
+          items:
+            $ref: '#/components/schemas/DemandItem'
+          type: array
+          title: Demands
+        validUntil:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Validuntil
+        metaContent:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Metacontent
+        constraints:
+          additionalProperties: true
+          type: object
+          title: Constraints
+      type: object
+      required:
+      - demands
+      title: PackageBody
+      description: Cuerpo del evento tal como lo publica la central.
+    PaginatedHistory:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/DemandEventOut'
+          type: array
+          title: Items
+        page:
+          type: integer
+          title: Page
+        limit:
+          type: integer
+          title: Limit
+        total:
+          type: integer
+          title: Total
+        pages:
+          type: integer
+          title: Pages
+      type: object
+      required:
+      - items
+      - page
+      - limit
+      - total
+      - pages
+      title: PaginatedHistory
+      description: Una página del historial más los datos para navegar el resto.
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+        input:
+          title: Input
+        ctx:
+          type: object
+          title: Context
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
+    NegotiationConflict:
+      title: NegotiationConflict
+      type: object
+      required:
+      - detail
+      properties:
+        detail:
+          type: object
+          required:
+          - reason
+          - message
+          properties:
+            reason:
+              type: string
+              enum:
+              - CYCLE_EXPIRED
+              - PRICE_ABOVE_CAP
+              - OVER_CAPACITY
+              description: Mismos nombres de error que usa la central
+            message:
+              type: string
+              description: Explicación legible
+    ErrorDetail:
+      title: ErrorDetail
+      type: object
+      required:
+      - detail
+      properties:
+        detail:
+          type: string
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
-
-  schemas:
-    PaginatedCycles:
-      type: object
-      required:
-        - items
-        - total
-        - page
-        - limit
-        - pages
-      properties:
-        items:
-          type: array
-          items:
-            $ref: "#/components/schemas/CycleDetail"
-        total:
-          type: integer
-          description: Cantidad total de ciclos registrados
-          example: 48
-        page:
-          type: integer
-          description: Página actual
-          example: 1
-        limit:
-          type: integer
-          description: Límite por página
-          example: 25
-        pages:
-          type: integer
-          description: Total de páginas disponibles
-          example: 2
-
-    CycleDetail:
-      type: object
-      required:
-        - cycleId
-        - isClosed
-        - finalBalances
-      properties:
-        cycleId:
-          type: string
-          description: Identificador ordinal del ciclo
-          example: cycle-9431
-        isClosed:
-          type: boolean
-          description: Indica si el ciclo ya cerró su ventana de negociación y reportó a la central
-          example: true
-        opened:
-          type: boolean
-          description: Indica si el ciclo se encuentra abierto (lo que consume el frontend)
-          example: false
-        balances:
-          $ref: "#/components/schemas/BalancesInfo"
-        finalBalances:
-          $ref: "#/components/schemas/BalancesInfo"
-        energyBalance:
-          type: integer
-          example: 1232
-        budgetBalance:
-          type: number
-          example: 131212.0
-        statusStatement:
-          $ref: "#/components/schemas/StatusStatementInfo"
-        transfers:
-          type: array
-          description: Fondos recibidos por transferencias de la central
-          items:
-            $ref: "#/components/schemas/TransferInfo"
-        totalTransferredBudget:
-          type: number
-          description: Total de créditos transferidos por la central en este ciclo
-          example: 508145.0
-        demandStatements:
-          type: array
-          description: Lista de demand-statement aplicados sobre este ciclo
-          items:
-            $ref: "#/components/schemas/DemandStatementInfo"
-        negotiations:
-          type: array
-          description: Negociaciones del ciclo para la interfaz
-          items:
-            $ref: "#/components/schemas/VoluntaryNegotiationInfo"
-        voluntaryNegotiations:
-          type: array
-          description: Lista de negociaciones voluntarias realizadas
-          items:
-            $ref: "#/components/schemas/VoluntaryNegotiationInfo"
-        operations:
-          type: array
-          description: Lista de operaciones aplicadas para la vista de ledger
-          items:
-            $ref: "#/components/schemas/OperationItem"
-        lastOperationIdpk:
-          type: string
-          nullable: true
-          example: "3b0821f4-52bc-440f-90be-d227b61f4fa8"
-        lastOperation:
-          $ref: "#/components/schemas/LastOperationInfo"
-        report:
-          $ref: "#/components/schemas/NegotiationReportInfo"
-        negotiationReport:
-          $ref: "#/components/schemas/NegotiationReportInfo"
-        createdAt:
-          type: string
-          format: date-time
-          example: "2026-09-01T12:00:00Z"
-        updatedAt:
-          type: string
-          format: date-time
-          example: "2026-09-01T14:00:00Z"
-
-    StatusStatementInfo:
-      type: object
-      nullable: true
-      properties:
-        generationCapacity:
-          type: integer
-          description: Capacidad de generación en kWh
-          example: 1234512
-        consumption:
-          type: integer
-          description: Consumo proyectado en kWh
-          example: 1444121
-        generationCost:
-          type: number
-          description: Costo de generación en créditos por kWh
-          example: 210.0
-        validUntil:
-          type: string
-          format: date-time
-          example: "2026-09-01T14:20:00Z"
-        receivedAt:
-          type: string
-          format: date-time
-          example: "2026-09-01T12:00:05Z"
-
-    TransferInfo:
-      type: object
-      required:
-        - idpk
-        - quantity
-      properties:
-        idpk:
-          type: string
-          description: Llave de idempotencia del transfer
-          example: "7e584f33-7221-4d32-9cb5-bb5083f2fa10"
-        msgId:
-          type: string
-          description: Identificador del mensaje
-          example: "86725356-91e8-466a-bfe0-fa40dbbc034d"
-        quantity:
-          type: number
-          description: Monto neto transferido en créditos
-          example: 508145.0
-        penalty:
-          type: number
-          nullable: true
-          description: Descuento aplicado por multa (e.g. reporte tardío)
-          example: 0.0
-        becauseOf:
-          type: string
-          nullable: true
-          description: Referencia si el pago proviene de una confirmación previa
-          example: null
-        receivedAt:
-          type: string
-          format: date-time
-          example: "2026-09-01T12:01:10Z"
-
-    DemandStatementInfo:
-      type: object
-      required:
-        - idpk
-        - quantity
-        - valuePerKwh
-      properties:
-        idpk:
-          type: string
-          description: Llave de idempotencia del demand-statement
-          example: "3b0821f4-52bc-440f-90be-d227b61f4fa8"
-        msgId:
-          type: string
-          example: "e6f47703-a417-4835-b286-9a296582fe93"
-        quantity:
-          type: integer
-          description: Cantidad de energía (>0 central entrega, <0 central retira) en kWh
-          example: 1500
-        valuePerKwh:
-          type: number
-          description: Valor acordado por kWh
-          example: 215.0
-        deltaBudget:
-          type: number
-          description: Impacto en el presupuesto (- si quantity > 0, + si quantity < 0)
-          example: -322500.0
-        deltaEnergy:
-          type: integer
-          description: Impacto en el balance de energía (+ si quantity > 0, - si quantity < 0)
-          example: 1500
-        appliedAt:
-          type: string
-          format: date-time
-          example: "2026-09-01T12:15:00Z"
-
-    VoluntaryNegotiationInfo:
-      type: object
-      required:
-        - idpk
-        - direction
-        - quantity
-        - pricePerEnergy
-        - status
-      properties:
-        idpk:
-          type: string
-          description: Llave de idempotencia de la propuesta original
-          example: "c79ef532-68bb-4a57-b43e-c6b659c2efea"
-        direction:
-          type: string
-          enum: [give, take]
-          description: give entrega energía / take recibe energía
-          example: take
-        quantity:
-          type: integer
-          description: Cantidad negociada en kWh
-          example: 2024
-        pricePerEnergy:
-          type: number
-          description: Precio unitario pactado
-          example: 210.0
-        status:
-          type: string
-          enum: [pending, confirmed, paid, expired]
-          description: Estado del ciclo de vida de la negociación
-          example: paid
-        updatedAt:
-          type: string
-          format: date-time
-          example: "2026-09-01T12:30:45Z"
-
-    NegotiationReportInfo:
-      type: object
-      nullable: true
-      properties:
-        budgetBalance:
-          type: number
-          description: Presupuesto reportado al cierre de la ventana
-          example: 131212.0
-        energyBalance:
-          type: integer
-          description: Balance de energía reportado
-          example: 1232
-        submittedAt:
-          type: string
-          format: date-time
-          example: "2026-09-01T13:56:00Z"
-
-    BalancesInfo:
-      type: object
-      required:
-        - budget
-        - energy
-      properties:
-        budget:
-          type: number
-          description: Saldo actual o final de créditos acumulados
-          example: 131212.0
-        energy:
-          type: integer
-          description: Saldo de energía del ciclo en kWh
-          example: 1232
-
-    LastOperationInfo:
-      type: object
-      nullable: true
-      required:
-        - idpk
-        - type
-        - appliedAt
-      properties:
-        idpk:
-          type: string
-          description: Llave de idempotencia de la última operación aplicada
-          example: "3b0821f4-52bc-440f-90be-d227b61f4fa8"
-        type:
-          type: string
-          description: Tipo de operación (demand-statement, transfer, negotiation-trade, etc.)
-          example: demand-statement
-        appliedAt:
-          type: string
-          format: date-time
-          example: "2026-09-01T13:45:00Z"
-        description:
-          type: string
-          description: Resumen legible de la operación
-          example: "demand-statement aplicado: +1500 kWh, -322500 créditos"
-
-    OperationItem:
-      type: object
-      required:
-        - idpk
-        - kind
-        - appliedAt
-      properties:
-        idpk:
-          type: string
-          example: "3b0821f4-52bc-440f-90be-d227b61f4fa8"
-        kind:
-          type: string
-          example: "demand-statement"
-        isLast:
-          type: boolean
-          example: true
-        appliedAt:
-          type: string
-          format: date-time
-          example: "2026-09-01T13:45:00Z"
-
-    MessageLogItem:
-      type: object
-      required:
-        - id
-        - category
-        - receivedAt
-      properties:
-        id:
-          type: integer
-          example: 1
-        category:
-          type: string
-          enum: [duplicate, discarded, nack]
-          example: duplicate
-        messageType:
-          type: string
-          nullable: true
-          example: "demand-statement"
-        idpk:
-          type: string
-          nullable: true
-          example: "3b0821f4-52bc-440f-90be-d227b61f4fa8"
-        reason:
-          type: string
-          nullable: true
-          example: "DUPLICATE_IDPK"
-        receivedAt:
-          type: string
-          format: date-time
-          example: "2026-09-01T13:45:00Z"
-
-    PaginatedMessageLogs:
-      type: object
-      required:
-        - items
-        - total
-        - page
-        - limit
-        - pages
-      properties:
-        items:
-          type: array
-          items:
-            $ref: "#/components/schemas/MessageLogItem"
-        total:
-          type: integer
-          example: 12
-        page:
-          type: integer
-          example: 1
-        limit:
-          type: integer
-          example: 25
-        pages:
-          type: integer
-          example: 1
-
+servers:
+- url: https://api.melchort.me
+  description: Producción (API Gateway)
+- url: http://127.0.0.1:8001
+  description: Local (master-1, sin JWT)
 security:
-  - bearerAuth: []
-
+- bearerAuth: []

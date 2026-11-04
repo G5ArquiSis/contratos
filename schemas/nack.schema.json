@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/G5ArquiSis/contratos/schemas/nack.schema.json",
+  "title": "NACK",
+  "description": "Envelope parseable pero inválido. Nunca se responde con ACK ni NACK.",
+  "allOf": [
+    {
+      "$ref": "envelope.schema.json"
+    }
+  ],
+  "type": "object",
+  "required": [
+    "reason",
+    "code",
+    "data"
+  ],
+  "properties": {
+    "type": {
+      "const": "nack"
+    },
+    "reason": {
+      "type": "string",
+      "description": "Nombre del error, por ejemplo MALFORMED_MESSAGE"
+    },
+    "code": {
+      "type": "integer",
+      "description": "Código prestado de HTTP"
+    },
+    "data": {
+      "type": "object",
+      "required": [
+        "target",
+        "message"
+      ],
+      "properties": {
+        "target": {
+          "type": "string",
+          "minLength": 1,
+          "description": "msgId del mensaje rechazado"
+        },
+        "message": {
+          "type": "string"
+        },
+        "cycleId": {
+          "type": "string",
+          "description": "El cycleId del mensaje rechazado, tal cual"
+        },
+        "cap": {
+          "type": "number",
+          "description": "Tope de precio, en PRICE_ABOVE_CAP"
+        }
+      }
+    }
+  }
+}

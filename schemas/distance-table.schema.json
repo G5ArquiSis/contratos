@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/G5ArquiSis/contratos/schemas/distance-table.schema.json",
+  "title": "Distance-table",
+  "description": "Rutas hacia otras ciudades; la vigente es la última recibida.",
+  "allOf": [
+    {
+      "$ref": "envelope.schema.json"
+    }
+  ],
+  "type": "object",
+  "required": [
+    "sender",
+    "data"
+  ],
+  "properties": {
+    "type": {
+      "const": "distance-table"
+    },
+    "data": {
+      "type": "object",
+      "required": [
+        "distances"
+      ],
+      "properties": {
+        "distances": {
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^[A-Z0-9]{3}$"
+          },
+          "additionalProperties": {
+            "type": "object",
+            "required": [
+              "distance",
+              "transportCost",
+              "enabled"
+            ],
+            "properties": {
+              "distance": {
+                "type": "number",
+                "minimum": 0,
+                "description": "metros"
+              },
+              "transportCost": {
+                "type": "number",
+                "minimum": 0,
+                "description": "créditos por kWh·km"
+              },
+              "enabled": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

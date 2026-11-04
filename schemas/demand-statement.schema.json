@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/G5ArquiSis/contratos/schemas/demand-statement.schema.json",
+  "title": "Demand-statement",
+  "description": "Ajuste obligatorio de energía: quantity > 0 la central entrega, < 0 retira.",
+  "allOf": [
+    {
+      "$ref": "envelope.schema.json"
+    }
+  ],
+  "type": "object",
+  "required": [
+    "sender",
+    "cycleId",
+    "data"
+  ],
+  "properties": {
+    "type": {
+      "const": "demand-statement"
+    },
+    "data": {
+      "type": "object",
+      "required": [
+        "balance"
+      ],
+      "properties": {
+        "balance": {
+          "type": "object",
+          "required": [
+            "quantity",
+            "valuePerKwh"
+          ],
+          "properties": {
+            "quantity": {
+              "type": "number",
+              "description": "kWh, puede ser negativo"
+            },
+            "valuePerKwh": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    }
+  }
+}

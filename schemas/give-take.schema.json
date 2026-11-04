@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/G5ArquiSis/contratos/schemas/give-take.schema.json",
+  "title": "Confirmación give / take",
+  "description": "La central acepta una propuesta. Un give se cobra con el transfer que sigue; un take se paga con un transfer nuestro.",
+  "allOf": [
+    {
+      "$ref": "envelope.schema.json"
+    }
+  ],
+  "type": "object",
+  "required": [
+    "sender",
+    "cycleId",
+    "data"
+  ],
+  "properties": {
+    "type": {
+      "enum": [
+        "give",
+        "take"
+      ]
+    },
+    "data": {
+      "type": "object",
+      "required": [
+        "target",
+        "energy",
+        "pricePerEnergy"
+      ],
+      "properties": {
+        "target": {
+          "type": "string",
+          "minLength": 1,
+          "description": "msgId de la propuesta"
+        },
+        "energy": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "description": "kWh confirmados"
+        },
+        "pricePerEnergy": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    }
+  }
+}
