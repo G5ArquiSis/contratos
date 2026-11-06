@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/G5ArquiSis/contratos/schemas/swap-expired.schema.json",
+  "title": "Swap-expired",
+  "description": "Evento de la wallet emitido cuando un swap propuesto supera su expiresAt sin ser aceptado, liberando los activos retenidos.",
+  "allOf": [
+    {
+      "$ref": "envelope.schema.json"
+    }
+  ],
+  "type": "object",
+  "required": [
+    "type",
+    "sender",
+    "data"
+  ],
+  "properties": {
+    "type": {
+      "const": "swap-expired"
+    },
+    "sender": {
+      "const": "central"
+    },
+    "data": {
+      "type": "object",
+      "required": [
+        "swapId"
+      ],
+      "properties": {
+        "swapId": {
+          "type": "string"
+        },
+        "idpk": {
+          "type": "string"
+        },
+        "expiredAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "balancesAfter": {
+          "type": "object"
+        }
+      }
+    }
+  }
+}

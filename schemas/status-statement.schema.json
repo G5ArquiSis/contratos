@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/G5ArquiSis/contratos/schemas/status-statement.schema.json",
-  "title": "Status-statement",
-  "description": "Abre el ciclo: capacidad, consumo, costo y fin de la ventana.",
+  "title": "Status-statement v3",
+  "description": "Abre el ciclo y la ventana de mercado: capacidad, consumo, costo, parámetros de mercado, límites y fin de la ventana.",
   "allOf": [
     {
       "$ref": "envelope.schema.json"
@@ -36,17 +36,90 @@
             "generationCapacity": {
               "type": "number",
               "minimum": 0,
-              "description": "kWh"
+              "description": "Capacidad de generación en kWh"
             },
             "consumption": {
               "type": "number",
               "minimum": 0,
-              "description": "kWh"
+              "description": "Consumo proyectado en kWh"
             },
             "generationCost": {
               "type": "number",
               "minimum": 0,
-              "description": "créditos por kWh; el tope de precio es round2(1.05 × generationCost)"
+              "description": "Costo de generación en créditos por kWh"
+            },
+            "sellable": {
+              "type": "number",
+              "minimum": 0,
+              "description": "Energía vendible disponible para ofertar en el mercado"
+            }
+          }
+        },
+        "market": {
+          "type": "object",
+          "description": "Parámetros y límites del mercado entre ciudades en el protocolo v3",
+          "required": [
+            "buybackPrice",
+            "imbalancePrice",
+            "minBid",
+            "opensAt",
+            "lastOfferAt",
+            "lastBidAt",
+            "closesAt",
+            "reportOpensAt",
+            "limits"
+          ],
+          "properties": {
+            "buybackPrice": {
+              "type": "number",
+              "minimum": 0
+            },
+            "imbalancePrice": {
+              "type": "number",
+              "minimum": 0
+            },
+            "minBid": {
+              "type": "number",
+              "minimum": 0
+            },
+            "opensAt": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "lastOfferAt": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "lastBidAt": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "closesAt": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "reportOpensAt": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "limits": {
+              "type": "object",
+              "required": [
+                "marketOpsPerMinute",
+                "walletWritesPerMinute",
+                "walletReadsPerMinute"
+              ],
+              "properties": {
+                "marketOpsPerMinute": {
+                  "type": "integer"
+                },
+                "walletWritesPerMinute": {
+                  "type": "integer"
+                },
+                "walletReadsPerMinute": {
+                  "type": "integer"
+                }
+              }
             }
           }
         },

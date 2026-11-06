@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/G5ArquiSis/contratos/schemas/offer-updated.schema.json",
+  "title": "Offer-updated",
+  "description": "Actualización de una oferta vigente en el exchange market tras una venta parcial o cambio de precio.",
+  "type": "object",
+  "required": [
+    "type",
+    "cycleId",
+    "cityId",
+    "data"
+  ],
+  "properties": {
+    "type": {
+      "const": "offer-updated"
+    },
+    "cycleId": {
+      "type": "string"
+    },
+    "cityId": {
+      "type": "string",
+      "pattern": "^[A-Z0-9]{3}$"
+    },
+    "data": {
+      "type": "object",
+      "required": [
+        "offerId",
+        "remaining",
+        "pricePerEnergy"
+      ],
+      "properties": {
+        "offerId": {
+          "type": "string"
+        },
+        "remaining": {
+          "type": "number",
+          "minimum": 0,
+          "description": "kWh remanentes disponibles para compra"
+        },
+        "pricePerEnergy": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Precio unitario actualizado en créditos por kWh"
+        }
+      }
+    }
+  }
+}

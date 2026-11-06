@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/G5ArquiSis/contratos/schemas/trade-recorded.schema.json",
+  "title": "Trade-recorded",
+  "description": "Notificación emitida por la central a ambas partes tras un swap-settled, informando el cobro por transporte de energía.",
+  "allOf": [
+    {
+      "$ref": "envelope.schema.json"
+    }
+  ],
+  "type": "object",
+  "required": [
+    "type",
+    "cycleId",
+    "sender",
+    "data"
+  ],
+  "properties": {
+    "type": {
+      "const": "trade-recorded"
+    },
+    "sender": {
+      "const": "central"
+    },
+    "data": {
+      "type": "object",
+      "required": [
+        "swapId",
+        "offerId",
+        "seller",
+        "buyer",
+        "quantity",
+        "pricePerEnergy",
+        "energyTotal",
+        "transportPerEnergy",
+        "transportTotal",
+        "routeEnabled"
+      ],
+      "properties": {
+        "swapId": {
+          "type": "string"
+        },
+        "offerId": {
+          "type": "string"
+        },
+        "seller": {
+          "type": "string"
+        },
+        "buyer": {
+          "type": "string"
+        },
+        "quantity": {
+          "type": "number",
+          "minimum": 0
+        },
+        "pricePerEnergy": {
+          "type": "number",
+          "minimum": 0
+        },
+        "energyTotal": {
+          "type": "number"
+        },
+        "transportPerEnergy": {
+          "type": "number"
+        },
+        "transportTotal": {
+          "type": "number"
+        },
+        "routeEnabled": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

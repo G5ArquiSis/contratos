@@ -1,8 +1,9 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/G5ArquiSis/contratos/schemas/demand-statement.schema.json",
-  "title": "Demand-statement",
-  "description": "Ajuste obligatorio de energía: quantity > 0 la central entrega, < 0 retira.",
+  "title": "Demand-statement (RETIRADO v3)",
+  "description": "DEPRECATED: Retirado en el protocolo v3. La central responde TYPE_RETIRED (410) y no debe reintentarse.",
+  "deprecated": true,
   "allOf": [
     {
       "$ref": "envelope.schema.json"

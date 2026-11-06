@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/G5ArquiSis/contratos/schemas/market-closed.schema.json",
+  "title": "Market-closed",
+  "description": "Notificación emitida por la central al exchange market con routing key market.closed indicando el fin de la ventana de mercado.",
+  "type": "object",
+  "required": [
+    "type",
+    "cycleId",
+    "sender"
+  ],
+  "properties": {
+    "type": {
+      "const": "market-closed"
+    },
+    "cycleId": {
+      "type": "string"
+    },
+    "sender": {
+      "const": "central"
+    }
+  }
+}

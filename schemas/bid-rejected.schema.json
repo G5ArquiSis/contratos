@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/G5ArquiSis/contratos/schemas/bid-rejected.schema.json",
+  "title": "Bid-rejected",
+  "description": "Rechazo de un bid enviado por el vendedor. Es un error en el sentido de la E1 (precedido por el ACK de recepción del bid).",
+  "allOf": [
+    {
+      "$ref": "envelope.schema.json"
+    }
+  ],
+  "type": "object",
+  "required": [
+    "type",
+    "cycleId",
+    "cityId",
+    "reason",
+    "code",
+    "data"
+  ],
+  "properties": {
+    "type": {
+      "const": "bid-rejected"
+    },
+    "reason": {
+      "type": "string",
+      "enum": [
+        "QUANTITY_UNAVAILABLE",
+        "OFFER_WITHDRAWN",
+        "BID_TOO_SMALL",
+        "MARKET_CLOSED",
+        "SELF_TRADE",
+        "PRICE_MISMATCH",
+        "INSUFFICIENT_ASSET"
+      ]
+    },
+    "code": {
+      "type": "integer"
+    },
+    "data": {
+      "type": "object",
+      "required": [
+        "target",
+        "offerId"
+      ],
+      "properties": {
+        "target": {
+          "type": "string",
+          "description": "msgId del bid original rechazado"
+        },
+        "offerId": {
+          "type": "string"
+        },
+        "requested": {
+          "type": "number",
+          "minimum": 0
+        },
+        "available": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Remanente aún disponible si la razón es QUANTITY_UNAVAILABLE"
+        }
+      }
+    }
+  }
+}
