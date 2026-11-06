@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/G5ArquiSis/contratos/schemas/swap-rejected.schema.json",
+  "title": "Swap-rejected",
+  "description": "Evento de la wallet emitido cuando una propuesta de swap o una aceptación falla por saldo insuficiente u otra validación.",
+  "allOf": [
+    {
+      "$ref": "envelope.schema.json"
+    }
+  ],
+  "type": "object",
+  "required": [
+    "type",
+    "sender",
+    "data"
+  ],
+  "properties": {
+    "type": {
+      "const": "swap-rejected"
+    },
+    "sender": {
+      "const": "central"
+    },
+    "data": {
+      "type": "object",
+      "required": [
+        "swapId"
+      ],
+      "properties": {
+        "swapId": {
+          "type": "string"
+        },
+        "idpk": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "code": {
+          "type": "integer"
+        },
+        "balancesAfter": {
+          "type": "object"
+        }
+      }
+    }
+  }
+}

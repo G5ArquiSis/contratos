@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/G5ArquiSis/contratos/schemas/swap-settled.schema.json",
+  "title": "Swap-settled",
+  "description": "Evento de la wallet emitido por la central notificando la liquidación y ejecución atómica de un swap.",
+  "allOf": [
+    {
+      "$ref": "envelope.schema.json"
+    }
+  ],
+  "type": "object",
+  "required": [
+    "type",
+    "sender",
+    "data"
+  ],
+  "properties": {
+    "type": {
+      "const": "swap-settled"
+    },
+    "sender": {
+      "const": "central"
+    },
+    "data": {
+      "type": "object",
+      "required": [
+        "swapId"
+      ],
+      "properties": {
+        "swapId": {
+          "type": "string"
+        },
+        "idpk": {
+          "type": "string"
+        },
+        "proposer": {
+          "type": "string"
+        },
+        "counterparty": {
+          "type": "string"
+        },
+        "give": {
+          "type": "object"
+        },
+        "take": {
+          "type": "object"
+        },
+        "settledAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "balancesAfter": {
+          "type": "object"
+        }
+      }
+    }
+  }
+}

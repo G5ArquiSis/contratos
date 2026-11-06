@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/G5ArquiSis/contratos/schemas/transfer.schema.json",
-  "title": "Transfer",
-  "description": "Créditos. De la central: presupuesto del ciclo o pago de un give. Nuestro: pago de un take.",
+  "title": "Transfer v3",
+  "description": "Financiamiento de créditos otorgado por la central para el ciclo actual.",
   "allOf": [
     {
       "$ref": "envelope.schema.json"
@@ -25,17 +25,44 @@
       "properties": {
         "quantity": {
           "type": "number",
-          "description": "Monto en créditos (neto de penalty)"
+          "description": "Monto neto en créditos transferido a la cuenta de la ciudad"
+        },
+        "balanceAfter": {
+          "type": "number",
+          "description": "Saldo en créditos resultante en la wallet tras el financiamiento y multa"
+        },
+        "creditLine": {
+          "type": "number",
+          "description": "Línea de crédito autorizada en la wallet (dos veces el financiamiento bruto)"
         },
         "penalty": {
-          "type": "number",
-          "minimum": 0,
-          "description": "Multa descontada, por ejemplo por reporte tardío"
+          "description": "Multa descontada si hubo reporte tardío o no enviado en un ciclo previo",
+          "oneOf": [
+            {
+              "type": "object",
+              "required": [
+                "amount",
+                "forCycleId"
+              ],
+              "properties": {
+                "amount": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "forCycleId": {
+                  "type": "string"
+                }
+              }
+            },
+            {
+              "type": "number",
+              "minimum": 0
+            }
+          ]
         },
         "becauseOf": {
           "type": "string",
-          "minLength": 1,
-          "description": "msgId de la confirmación give/take que paga"
+          "description": "msgId del evento que originó el pago (si aplica)"
         }
       }
     }

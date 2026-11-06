@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/G5ArquiSis/contratos/schemas/imbalance-settlement.schema.json",
+  "title": "Imbalance-settlement",
+  "description": "Liquidación por desbalance emitida por la central al cierre del ciclo para cada ciudad que recibió status-statement.",
+  "allOf": [
+    {
+      "$ref": "envelope.schema.json"
+    }
+  ],
+  "type": "object",
+  "required": [
+    "type",
+    "cycleId",
+    "sender",
+    "data"
+  ],
+  "properties": {
+    "type": {
+      "const": "imbalance-settlement"
+    },
+    "sender": {
+      "const": "central"
+    },
+    "data": {
+      "type": "object",
+      "required": [
+        "kwhHeld",
+        "deficit",
+        "coverage",
+        "pricePerEnergy",
+        "total",
+        "balanceAfter",
+        "settlementId"
+      ],
+      "properties": {
+        "kwhHeld": {
+          "type": "number",
+          "minimum": 0,
+          "description": "kWh en posesión de la ciudad al cierre"
+        },
+        "deficit": {
+          "type": "number",
+          "description": "Déficit o requerimiento energético asignado"
+        },
+        "coverage": {
+          "type": "number",
+          "description": "Diferencia neta (kwhHeld - deficit)"
+        },
+        "pricePerEnergy": {
+          "type": "number",
+          "description": "Precio de compra (buybackPrice si coverage >= 0, imbalancePrice si coverage < 0)"
+        },
+        "total": {
+          "type": "number",
+          "description": "Total de créditos acreditados o debitados"
+        },
+        "balanceAfter": {
+          "type": "number",
+          "description": "Saldo resultante en créditos de la cuenta en la wallet"
+        },
+        "settlementId": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

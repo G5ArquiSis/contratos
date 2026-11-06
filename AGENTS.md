@@ -77,7 +77,34 @@ el trabajo. Lo que se haga en `contratos` se registra en `backend`.
 
 Los prompts se citan sin secretos: nunca credenciales, tokens ni contenido de un `.env`.
 
+## Protocolo v3: Mercado, Wallet y Reglas que no se rompen
+
+En la Entrega 2 la central dejó de negociar directamente y pasó a operar la **Wallet** (fuente de verdad en créditos y energía) y la liquidación al cierre. Las ciudades comercian entre sí:
+
+### 1. Mecánica del Mercado
+- **Ofertas públicas:** Se publican en el exchange `market` con routing key `market.offer.{CODE}` (para TAL: `market.offer.TAL`). Llegan a la cola `market.{CODE}` de todas las ciudades. **No se responden con ACK**.
+- **Posturas de compra (Bids):** El comprador envía un mensaje `bid` directamente a la cola de la ciudad vendedora (`city.{VENDEDOR}`) a través del exchange `energy.x`.
+- **Validación de Identidad:** Todo mensaje directo entre ciudades lleva la propiedad AMQP `user_id = city.{CODE}` coincidente con su `cityId`. Si no coincide o falta, el receptor responde **NACK IDENTITY_MISMATCH (403)** dirigido a la cola de quien publicó (no a la ciudad usurpada).
+- **Swaps en la Wallet:** 
+  1. Al aceptar un bid, el vendedor propone un swap en la wallet (`POST /swaps`). La wallet responde `202 Accepted`.
+  2. Al confirmarse la propuesta, la wallet emite el evento `swap-proposed` con el `swapToken` JWT (firmado con ES256).
+  3. El vendedor envía `bid-accepted` con dicho token al comprador.
+  4. El comprador valida criptográficamente el token contra el JWKS de la wallet (`/.well-known/jwks.json`) y sus claims (`sub`, `proposer`, `give`, `take`, `expiresAt`).
+  5. Si es válido, el comprador acepta el swap en la wallet (`POST /swaps/{id}/accept`) usando `Idempotency-Key`.
+  6. La wallet liquida atómicamente el intercambio y emite `swap-settled` a ambas ciudades; la central emite `trade-recorded` cobrando el transporte según la `distance-table`.
+
+### 2. Reglas que no se rompen (v3)
+- **Cero ACKs en el mercado:** Nunca responder con ACK ni NACK a mensajes provenientes del exchange `market` (`offer`, `offer-updated`, `offer-withdrawn`, `market-closed`).
+- **Límites de tasa:** Respetar los topes estrictos: máximo 60 operaciones de mercado por minuto, 10 request/min, 120 escrituras y 300 lecturas por minuto a la wallet (con manejo de 429 y cabecera `Retry-After`).
+- **Disciplina de Idempotencia:** Reintentar escrituras ante timeouts/502/504 usando siempre la MISMA clave de idempotencia (`idpk`). Una operación nueva o corregida usa una nueva clave.
+- **Ventanas y plazos:** No ofertar después de `lastOfferAt`, no enviar bids tras `lastBidAt`, y enviar el `negotiation-report` obligatoriamente entre `reportOpensAt` y `validUntil` para evitar la multa de 50.000 créditos.
+
 ## Decisiones de arquitectura
 
-Ver los ADRs en `backend/docs/adr/` (AD1 topología del consumo, AD2 persistencia del ledger,
-AD3 timeouts de negociación).
+Ver los ADRs en `backend/docs/adr/`:
+- AD1: Topología del consumo (actualizado a 3 conexiones: observer, city, market).
+- AD2 / AD5: Persistencia del ledger y consistencia con la wallet.
+- AD3: Timeouts, disciplina de reintentos y descarte de mensajes.
+- AD4: Serialización atómica de bids en el vendedor (lock por oferta).
+- AD6: Estrategia configurable sin redeploy.
+
