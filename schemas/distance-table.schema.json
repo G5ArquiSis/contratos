@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/G5ArquiSis/contratos/schemas/distance-table.schema.json",
-  "title": "Distance-table",
-  "description": "Rutas hacia otras ciudades; la vigente es la última recibida.",
+  "title": "Distance-table v3",
+  "description": "Tabla de distancias y costos de transporte hacia otras ciudades, con soporte para rutas deshabilitadas y penalización.",
   "allOf": [
     {
       "$ref": "envelope.schema.json"
@@ -23,6 +23,11 @@
         "distances"
       ],
       "properties": {
+        "disabledRouteTransportCost": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Tarifa punitiva por kWh·km aplicada al comprar por rutas con enabled: false"
+        },
         "distances": {
           "type": "object",
           "propertyNames": {
@@ -39,15 +44,16 @@
               "distance": {
                 "type": "number",
                 "minimum": 0,
-                "description": "metros"
+                "description": "Distancia en metros"
               },
               "transportCost": {
                 "type": "number",
                 "minimum": 0,
-                "description": "créditos por kWh·km"
+                "description": "Costo en créditos por kWh·km"
               },
               "enabled": {
-                "type": "boolean"
+                "type": "boolean",
+                "description": "False si la ruta fue temporalmente deshabilitada en el ciclo"
               }
             }
           }

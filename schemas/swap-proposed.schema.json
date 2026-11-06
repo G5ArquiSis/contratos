@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/G5ArquiSis/contratos/schemas/swap-proposed.schema.json",
+  "title": "Swap-proposed",
+  "description": "Evento de la wallet emitido por la central notificando la propuesta exitosa de un swap.",
+  "allOf": [
+    {
+      "$ref": "envelope.schema.json"
+    }
+  ],
+  "type": "object",
+  "required": [
+    "type",
+    "sender",
+    "data"
+  ],
+  "properties": {
+    "type": {
+      "const": "swap-proposed"
+    },
+    "sender": {
+      "const": "central"
+    },
+    "data": {
+      "type": "object",
+      "required": [
+        "swapId"
+      ],
+      "properties": {
+        "swapId": {
+          "type": "string"
+        },
+        "idpk": {
+          "type": "string",
+          "description": "Idempotency-Key u operación original para apareo"
+        },
+        "token": {
+          "type": "string",
+          "description": "Token JWT firmado por la wallet"
+        },
+        "proposer": {
+          "type": "string"
+        },
+        "counterparty": {
+          "type": "string"
+        },
+        "give": {
+          "type": "object",
+          "properties": {
+            "asset": {
+              "type": "string",
+              "enum": ["CR", "KWH"]
+            },
+            "amount": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        },
+        "take": {
+          "type": "object",
+          "properties": {
+            "asset": {
+              "type": "string",
+              "enum": ["CR", "KWH"]
+            },
+            "amount": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        },
+        "expiresAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "balancesAfter": {
+          "type": "object",
+          "description": "Saldos actualizados tras la retención de activos"
+        }
+      }
+    }
+  }
+}

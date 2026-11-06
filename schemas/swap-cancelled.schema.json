@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/G5ArquiSis/contratos/schemas/swap-cancelled.schema.json",
+  "title": "Swap-cancelled",
+  "description": "Evento de la wallet emitido cuando el proponente cancela un swap antes de ser aceptado.",
+  "allOf": [
+    {
+      "$ref": "envelope.schema.json"
+    }
+  ],
+  "type": "object",
+  "required": [
+    "type",
+    "sender",
+    "data"
+  ],
+  "properties": {
+    "type": {
+      "const": "swap-cancelled"
+    },
+    "sender": {
+      "const": "central"
+    },
+    "data": {
+      "type": "object",
+      "required": [
+        "swapId"
+      ],
+      "properties": {
+        "swapId": {
+          "type": "string"
+        },
+        "idpk": {
+          "type": "string"
+        },
+        "cancelledAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "balancesAfter": {
+          "type": "object"
+        }
+      }
+    }
+  }
+}

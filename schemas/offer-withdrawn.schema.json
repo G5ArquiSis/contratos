@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/G5ArquiSis/contratos/schemas/offer-withdrawn.schema.json",
+  "title": "Offer-withdrawn",
+  "description": "Retiro voluntario de una oferta antes del cierre del mercado.",
+  "type": "object",
+  "required": [
+    "type",
+    "cycleId",
+    "cityId",
+    "data"
+  ],
+  "properties": {
+    "type": {
+      "const": "offer-withdrawn"
+    },
+    "cycleId": {
+      "type": "string"
+    },
+    "cityId": {
+      "type": "string",
+      "pattern": "^[A-Z0-9]{3}$"
+    },
+    "data": {
+      "type": "object",
+      "required": [
+        "offerId"
+      ],
+      "properties": {
+        "offerId": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

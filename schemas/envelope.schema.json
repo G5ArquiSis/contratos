@@ -1,15 +1,11 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/G5ArquiSis/contratos/schemas/envelope.schema.json",
-  "title": "Envelope v2",
-  "description": "Campos comunes a todo mensaje. Sin msgId o sin JSON parseable se descarta y se registra; si faltan los demás campos obligatorios se responde NACK.",
+  "title": "Envelope v3",
+  "description": "Campos comunes a los mensajes del protocolo v3. Sin msgId o sin JSON parseable en colas punto a punto se descarta y registra; si faltan campos obligatorios se responde NACK.",
   "type": "object",
   "required": [
-    "idpk",
-    "msgId",
-    "type",
-    "timestamp",
-    "data"
+    "type"
   ],
   "properties": {
     "idpk": {
@@ -29,13 +25,27 @@
         "error",
         "status-statement",
         "transfer",
-        "demand-statement",
         "distance-table",
+        "negotiation-report",
+        "request",
+        "offer",
+        "offer-updated",
+        "offer-withdrawn",
+        "market-closed",
+        "bid",
+        "bid-accepted",
+        "bid-rejected",
+        "trade-recorded",
+        "imbalance-settlement",
+        "swap-proposed",
+        "swap-settled",
+        "swap-rejected",
+        "swap-expired",
+        "swap-cancelled",
+        "demand-statement",
         "give",
         "take",
-        "negotiation-proposal",
-        "negotiation-report",
-        "request"
+        "negotiation-proposal"
       ]
     },
     "timestamp": {
@@ -49,7 +59,7 @@
     },
     "sender": {
       "const": "central",
-      "description": "Lo llevan todos los mensajes de la central"
+      "description": "Lo llevan los mensajes emitidos por la central"
     },
     "cycleId": {
       "type": "string",

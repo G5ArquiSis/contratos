@@ -176,7 +176,7 @@ paths:
     post:
       tags:
       - negotiations
-      summary: Creación E1 retirada (410)
+      summary: 'Retirado en el protocolo v3: siempre responde 410'
       description: El protocolo v3 retira la creación HTTP de negociaciones E1.
       operationId: propose_negotiation_negotiations_post
       requestBody:
@@ -187,11 +187,11 @@ paths:
               $ref: '#/components/schemas/NegotiationIn'
       responses:
         '410':
-          description: Respuesta correcta
+          description: 'Siempre: negotiation-proposal está retirado en el protocolo v3'
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/NegotiationOut'
+                $ref: '#/components/schemas/ErrorDetail'
         '422':
           description: Parámetros o cuerpo inválidos
           content:
@@ -433,7 +433,7 @@ paths:
     get:
       tags:
       - negotiations
-      summary: Saldo sincronizado y discrepancias de wallet (AD5)
+      summary: Balance oficial de la wallet y su conciliación (AD5)
       description: |-
         este endpoint entrega el ultimo balance oficial sincronizado y el delta detectado.
         decision (AD5).

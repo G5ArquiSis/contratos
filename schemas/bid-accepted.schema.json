@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/G5ArquiSis/contratos/schemas/bid-accepted.schema.json",
+  "title": "Bid-accepted",
+  "description": "Aceptación de un bid enviada al comprador, conteniendo el swapToken JWT (firmado con ES256 por la wallet).",
+  "allOf": [
+    {
+      "$ref": "envelope.schema.json"
+    }
+  ],
+  "type": "object",
+  "required": [
+    "type",
+    "cycleId",
+    "cityId",
+    "data"
+  ],
+  "properties": {
+    "type": {
+      "const": "bid-accepted"
+    },
+    "data": {
+      "type": "object",
+      "required": [
+        "target",
+        "offerId",
+        "quantity",
+        "pricePerEnergy",
+        "amount",
+        "swapId",
+        "swapToken",
+        "expiresAt"
+      ],
+      "properties": {
+        "target": {
+          "type": "string",
+          "description": "msgId del bid original que se acepta"
+        },
+        "offerId": {
+          "type": "string"
+        },
+        "quantity": {
+          "type": "number",
+          "minimum": 0
+        },
+        "pricePerEnergy": {
+          "type": "number",
+          "minimum": 0
+        },
+        "amount": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Monto total en créditos a pagar por la energía"
+        },
+        "swapId": {
+          "type": "string",
+          "description": "Identificador del swap propuesto en la wallet"
+        },
+        "swapToken": {
+          "type": "string",
+          "description": "Token JWT firmado por la wallet (ES256)"
+        },
+        "expiresAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Plazo máximo para que el comprador acepte el swap en la wallet"
+        }
+      }
+    }
+  }
+}

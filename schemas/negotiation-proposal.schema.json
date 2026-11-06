@@ -1,8 +1,9 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/G5ArquiSis/contratos/schemas/negotiation-proposal.schema.json",
-  "title": "Negotiation-proposal",
-  "description": "Propuesta voluntaria de la ciudad. Cada reintento lleva msgId nuevo e idpk igual.",
+  "title": "Negotiation-proposal (RETIRADO v3)",
+  "description": "DEPRECATED: Retirado en el protocolo v3. En v3 el comercio es entre ciudades vía ofertas al mercado (offer) y posturas directas (bid).",
+  "deprecated": true,
   "allOf": [
     {
       "$ref": "envelope.schema.json"

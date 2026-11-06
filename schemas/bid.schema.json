@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/G5ArquiSis/contratos/schemas/bid.schema.json",
+  "title": "Bid",
+  "description": "Postura de compra enviada directamente a la cola de la ciudad vendedora (city.{VENDEDOR}). Requiere user_id AMQP coincidente con cityId.",
+  "allOf": [
+    {
+      "$ref": "envelope.schema.json"
+    }
+  ],
+  "type": "object",
+  "required": [
+    "type",
+    "cycleId",
+    "cityId",
+    "data"
+  ],
+  "properties": {
+    "type": {
+      "const": "bid"
+    },
+    "data": {
+      "type": "object",
+      "required": [
+        "offerId",
+        "quantity"
+      ],
+      "properties": {
+        "offerId": {
+          "type": "string",
+          "description": "Identificador de la oferta a la que se postula"
+        },
+        "quantity": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Cantidad de energía en kWh solicitada"
+        }
+      }
+    }
+  }
+}

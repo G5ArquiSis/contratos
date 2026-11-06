@@ -1,8 +1,9 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/G5ArquiSis/contratos/schemas/give-take.schema.json",
-  "title": "Confirmación give / take",
-  "description": "La central acepta una propuesta. Un give se cobra con el transfer que sigue; un take se paga con un transfer nuestro.",
+  "title": "Confirmación give / take (RETIRADO v3)",
+  "description": "DEPRECATED: Retirado en el protocolo v3. La negociación directa con la central fue reemplazada por el mercado entre ciudades y swaps de wallet.",
+  "deprecated": true,
   "allOf": [
     {
       "$ref": "envelope.schema.json"

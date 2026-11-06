@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/G5ArquiSis/contratos/schemas/offer.schema.json",
+  "title": "Offer",
+  "description": "Publicación de oferta en el exchange market con routing key market.offer.{CODE}. Llega a la cola market.{CODE} de todas las ciudades. Sin ACK.",
+  "type": "object",
+  "required": [
+    "type",
+    "cycleId",
+    "cityId",
+    "data"
+  ],
+  "properties": {
+    "type": {
+      "const": "offer"
+    },
+    "cycleId": {
+      "type": "string",
+      "description": "Identificador del ciclo activo"
+    },
+    "cityId": {
+      "type": "string",
+      "pattern": "^[A-Z0-9]{3}$",
+      "description": "Código de la ciudad vendedora"
+    },
+    "data": {
+      "type": "object",
+      "required": [
+        "offerId",
+        "quantity",
+        "pricePerEnergy"
+      ],
+      "properties": {
+        "offerId": {
+          "type": "string",
+          "description": "Identificador único de la oferta (ej: TAL-9431)"
+        },
+        "quantity": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Energía total ofrecida en kWh"
+        },
+        "pricePerEnergy": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Precio unitario en créditos por kWh"
+        }
+      }
+    }
+  }
+}
