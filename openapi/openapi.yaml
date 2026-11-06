@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
-  title: EnergyShark E1 API
-  version: 1.0.0
+  title: EnergyShark E2 API
+  version: 2.0.0
   description: |
     API HTTP pública del nodo de Talca (TAL). La interfaz la consume solo a través de API
     Gateway (`https://api.melchort.me`), que exige un JWT de Auth0 y agrega los headers CORS.
@@ -176,12 +176,8 @@ paths:
     post:
       tags:
       - negotiations
-      summary: Crear una propuesta de negociación (RF04)
-      description: |-
-        Crea una propuesta para el ciclo abierto; se publica a la central en segundos.
-
-        Responde 409 con el motivo si no hay ventana abierta, si el precio supera el
-        tope o si un `give` excede la energía vendible.
+      summary: Creación E1 retirada (410)
+      description: El protocolo v3 retira la creación HTTP de negociaciones E1.
       operationId: propose_negotiation_negotiations_post
       requestBody:
         required: true
@@ -190,7 +186,7 @@ paths:
             schema:
               $ref: '#/components/schemas/NegotiationIn'
       responses:
-        '201':
+        '410':
           description: Respuesta correcta
           content:
             application/json:
@@ -204,12 +200,6 @@ paths:
                 $ref: '#/components/schemas/HTTPValidationError'
         '401':
           description: Falta el token de Auth0 o no es válido (lo responde API Gateway)
-        '409':
-          description: No hay ventana abierta, el precio supera el tope o el give excede lo vendible
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/NegotiationConflict'
     get:
       tags:
       - negotiations
@@ -439,6 +429,23 @@ paths:
                 $ref: '#/components/schemas/HTTPValidationError'
         '401':
           description: Falta el token de Auth0 o no es válido (lo responde API Gateway)
+  /wallet/balance-status:
+    get:
+      tags:
+      - negotiations
+      summary: Saldo sincronizado y discrepancias de wallet (AD5)
+      description: |-
+        este endpoint entrega el ultimo balance oficial sincronizado y el delta detectado.
+        decision (AD5).
+      operationId: wallet_balance_status_wallet_balance_status_get
+      responses:
+        '200':
+          description: Respuesta correcta
+          content:
+            application/json:
+              schema: {}
+        '401':
+          description: Falta el token de Auth0 o no es válido (lo responde API Gateway)
 components:
   schemas:
     Connection:
@@ -492,11 +499,9 @@ components:
       properties:
         energy:
           type: string
-          pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
           title: Energy
         budget:
           type: string
-          pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
           title: Budget
       type: object
       required:
@@ -551,6 +556,12 @@ components:
             format: date-time
           - type: 'null'
           title: Reportsentat
+        reportQueuedAt:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Reportqueuedat
         reportError:
           anyOf:
           - type: string
@@ -568,6 +579,42 @@ components:
             $ref: '#/components/schemas/LedgerEventOut'
           type: array
           title: Operations
+        walletEvents:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Walletevents
+        walletStatement:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Walletstatement
+        marketMessages:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Marketmessages
+        reconciliation:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Reconciliation
+        swaps:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Swaps
+        distanceTable:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Distancetable
       type: object
       required:
       - cycleId
@@ -584,12 +631,15 @@ components:
       - lastOperationIdpk
       - operations
       title: CycleDetail
-      description: Todo lo que pasó en un ciclo, en un solo documento (RF01).
+      description: |-
+        Todo lo que pasó en un ciclo, en un solo documento (RF01).
+
+        ahora se incluyen los eventos de wallet, los asientos oficiales, los mensajes de mercado
+        y la reconciliación, para que sean mostrados en la vista del detalle del ciclo.
     CycleList:
       properties:
         budgetBalance:
           type: string
-          pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
           title: Budgetbalance
         items:
           items:
@@ -613,19 +663,16 @@ components:
         generationCapacity:
           anyOf:
           - type: string
-            pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
           - type: 'null'
           title: Generationcapacity
         consumption:
           anyOf:
           - type: string
-            pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
           - type: 'null'
           title: Consumption
         generationCost:
           anyOf:
           - type: string
-            pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
           - type: 'null'
           title: Generationcost
         validUntil:
@@ -636,11 +683,9 @@ components:
           title: Validuntil
         energyBalance:
           type: string
-          pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
           title: Energybalance
         budgetDelta:
           type: string
-          pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
           title: Budgetdelta
         lastOperationIdpk:
           anyOf:
@@ -662,13 +707,11 @@ components:
         reportedBudget:
           anyOf:
           - type: string
-            pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
           - type: 'null'
           title: Reportedbudget
         reportedEnergy:
           anyOf:
           - type: string
-            pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
           - type: 'null'
           title: Reportedenergy
         reportError:
@@ -756,11 +799,9 @@ components:
           title: Kind
         energyDelta:
           type: string
-          pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
           title: Energydelta
         budgetDelta:
           type: string
-          pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
           title: Budgetdelta
         appliedAt:
           type: string
@@ -876,14 +917,12 @@ components:
           - type: number
             exclusiveMinimum: 0.0
           - type: string
-            pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
           title: Quantity
         pricePerEnergy:
           anyOf:
           - type: number
             exclusiveMinimum: 0.0
           - type: string
-            pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
           - type: 'null'
           title: Priceperenergy
       type: object
@@ -908,11 +947,9 @@ components:
           title: Direction
         quantity:
           type: string
-          pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
           title: Quantity
         pricePerEnergy:
           type: string
-          pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
           title: Priceperenergy
         state:
           type: string
@@ -923,19 +960,16 @@ components:
         confirmedEnergy:
           anyOf:
           - type: string
-            pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
           - type: 'null'
           title: Confirmedenergy
         confirmedPrice:
           anyOf:
           - type: string
-            pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
           - type: 'null'
           title: Confirmedprice
         amount:
           anyOf:
           - type: string
-            pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
           - type: 'null'
           title: Amount
         reason:
@@ -1049,28 +1083,6 @@ components:
       - msg
       - type
       title: ValidationError
-    NegotiationConflict:
-      title: NegotiationConflict
-      type: object
-      required:
-      - detail
-      properties:
-        detail:
-          type: object
-          required:
-          - reason
-          - message
-          properties:
-            reason:
-              type: string
-              enum:
-              - CYCLE_EXPIRED
-              - PRICE_ABOVE_CAP
-              - OVER_CAPACITY
-              description: Mismos nombres de error que usa la central
-            message:
-              type: string
-              description: Explicación legible
     ErrorDetail:
       title: ErrorDetail
       type: object
