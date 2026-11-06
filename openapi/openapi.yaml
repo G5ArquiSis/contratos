@@ -176,12 +176,8 @@ paths:
     post:
       tags:
       - negotiations
-      summary: Crear una propuesta de negociación (RF04)
-      description: |-
-        Crea una propuesta para el ciclo abierto; se publica a la central en segundos.
-
-        Responde 409 con el motivo si no hay ventana abierta, si el precio supera el
-        tope o si un `give` excede la energía vendible.
+      summary: 'Retirado en el protocolo v3: siempre responde 410'
+      description: El protocolo v3 retira la creación HTTP de negociaciones E1.
       operationId: propose_negotiation_negotiations_post
       requestBody:
         required: true
@@ -190,12 +186,12 @@ paths:
             schema:
               $ref: '#/components/schemas/NegotiationIn'
       responses:
-        '201':
-          description: Respuesta correcta
+        '410':
+          description: 'Siempre: negotiation-proposal está retirado en el protocolo v3'
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/NegotiationOut'
+                $ref: '#/components/schemas/ErrorDetail'
         '422':
           description: Parámetros o cuerpo inválidos
           content:
@@ -204,12 +200,6 @@ paths:
                 $ref: '#/components/schemas/HTTPValidationError'
         '401':
           description: Falta el token de Auth0 o no es válido (lo responde API Gateway)
-        '409':
-          description: No hay ventana abierta, el precio supera el tope o el give excede lo vendible
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/NegotiationConflict'
     get:
       tags:
       - negotiations
@@ -439,6 +429,23 @@ paths:
                 $ref: '#/components/schemas/HTTPValidationError'
         '401':
           description: Falta el token de Auth0 o no es válido (lo responde API Gateway)
+  /wallet/balance-status:
+    get:
+      tags:
+      - negotiations
+      summary: Balance oficial de la wallet y su conciliación (AD5)
+      description: |-
+        este endpoint entrega el ultimo balance oficial sincronizado y el delta detectado.
+        decision (AD5).
+      operationId: wallet_balance_status_wallet_balance_status_get
+      responses:
+        '200':
+          description: Respuesta correcta
+          content:
+            application/json:
+              schema: {}
+        '401':
+          description: Falta el token de Auth0 o no es válido (lo responde API Gateway)
 components:
   schemas:
     Connection:
@@ -551,6 +558,12 @@ components:
             format: date-time
           - type: 'null'
           title: Reportsentat
+        reportQueuedAt:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Reportqueuedat
         reportError:
           anyOf:
           - type: string
@@ -568,6 +581,42 @@ components:
             $ref: '#/components/schemas/LedgerEventOut'
           type: array
           title: Operations
+        walletEvents:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Walletevents
+        walletStatement:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Walletstatement
+        marketMessages:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Marketmessages
+        reconciliation:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Reconciliation
+        swaps:
+          items:
+            additionalProperties: true
+            type: object
+          type: array
+          title: Swaps
+        distanceTable:
+          anyOf:
+          - additionalProperties: true
+            type: object
+          - type: 'null'
+          title: Distancetable
       type: object
       required:
       - cycleId
@@ -584,7 +633,11 @@ components:
       - lastOperationIdpk
       - operations
       title: CycleDetail
-      description: Todo lo que pasó en un ciclo, en un solo documento (RF01).
+      description: |-
+        Todo lo que pasó en un ciclo, en un solo documento (RF01).
+
+        ahora se incluyen los eventos de wallet, los asientos oficiales, los mensajes de mercado
+        y la reconciliación, para que sean mostrados en la vista del detalle del ciclo.
     CycleList:
       properties:
         budgetBalance:
@@ -1049,28 +1102,6 @@ components:
       - msg
       - type
       title: ValidationError
-    NegotiationConflict:
-      title: NegotiationConflict
-      type: object
-      required:
-      - detail
-      properties:
-        detail:
-          type: object
-          required:
-          - reason
-          - message
-          properties:
-            reason:
-              type: string
-              enum:
-              - CYCLE_EXPIRED
-              - PRICE_ABOVE_CAP
-              - OVER_CAPACITY
-              description: Mismos nombres de error que usa la central
-            message:
-              type: string
-              description: Explicación legible
     ErrorDetail:
       title: ErrorDetail
       type: object
