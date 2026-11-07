@@ -8,7 +8,9 @@ info:
 
     - RF01: `/cycles` y `/cycles/{cycle_id}`
     - RF02: `/connectivity`
-    - RF04: `/negotiations`
+    - RF04: `/strategy`, `/strategy/offer` y `/strategy/swaps`
+    - E1: `/negotiations` (POST retirado en protocolo v3)
+    - AD5: `/wallet/balance-status` (saldo oficial y conciliación de Wallet)
     - RF05: `/message-log`
     - RF02 (E2): `/market/book`; motor comprador: `/market/bids`
     - RF06: `/experiments/span`
@@ -446,6 +448,127 @@ paths:
           content:
             application/json:
               schema: {}
+        '401':
+          description: Falta el token de Auth0 o no es válido (lo responde API Gateway)
+  /strategy:
+    get:
+      tags:
+      - strategy
+      summary: Consultar la estrategia activa (RF04)
+      description: Devuelve la estrategia activa y su versión persistida.
+      operationId: read_strategy_strategy_get
+      responses:
+        '200':
+          description: Respuesta correcta
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StrategyAdminOut'
+        '401':
+          description: Falta el token de Auth0 o no es válido (lo responde API Gateway)
+    put:
+      tags:
+      - strategy
+      summary: Actualizar la estrategia para el siguiente ciclo (RF04)
+      description: Crea una versión nueva con la configuración completa recibida.
+      operationId: replace_strategy_strategy_put
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StrategyConfig-Input'
+        required: true
+      responses:
+        '200':
+          description: Respuesta correcta
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StrategyAdminOut'
+        '422':
+          description: Parámetros o cuerpo inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '401':
+          description: Falta el token de Auth0 o no es válido (lo responde API Gateway)
+  /strategy/offer:
+    get:
+      tags:
+      - strategy
+      summary: Consultar la configuración de la oferta propia (RF04)
+      description: Devuelve los parámetros de precio y cantidad de la oferta propia.
+      operationId: read_offer_strategy_strategy_offer_get
+      responses:
+        '200':
+          description: Respuesta correcta
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StrategyOfferOut'
+        '401':
+          description: Falta el token de Auth0 o no es válido (lo responde API Gateway)
+    patch:
+      tags:
+      - strategy
+      summary: Actualizar precio y cantidad de la oferta (RF04)
+      description: Actualiza solo los parámetros de oferta, conservando el resto de la estrategia.
+      operationId: update_offer_strategy_strategy_offer_patch
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StrategyOfferPatch'
+        required: true
+      responses:
+        '200':
+          description: Respuesta correcta
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StrategyOfferOut'
+        '422':
+          description: Parámetros o cuerpo inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '401':
+          description: Falta el token de Auth0 o no es válido (lo responde API Gateway)
+  /strategy/swaps:
+    get:
+      tags:
+      - strategy
+      summary: Consultar los swaps propios en curso (RF04)
+      description: Lista bids aceptados cuyo swap vendedor todavía no llegó a estado terminal.
+      operationId: list_in_progress_swaps_strategy_swaps_get
+      parameters:
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 50
+          title: Limit
+      responses:
+        '200':
+          description: Respuesta correcta
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SellerSwapOut'
+                title: Response List In Progress Swaps Strategy Swaps Get
+        '422':
+          description: Parámetros o cuerpo inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
         '401':
           description: Falta el token de Auth0 o no es válido (lo responde API Gateway)
   /market/book:
@@ -1349,6 +1472,59 @@ components:
       - pages
       title: PaginatedHistory
       description: Una página del historial más los datos para navegar el resto.
+    SellerSwapOut:
+      properties:
+        id:
+          type: integer
+          title: Id
+        cycleId:
+          type: string
+          title: Cycleid
+        offerId:
+          type: string
+          title: Offerid
+        buyerCity:
+          type: string
+          title: Buyercity
+        quantity:
+          type: integer
+          title: Quantity
+        pricePerEnergy:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Priceperenergy
+        status:
+          type: string
+          title: Status
+        swapId:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Swapid
+        swapExpiresAt:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Swapexpiresat
+        createdAt:
+          type: string
+          format: date-time
+          title: Createdat
+      type: object
+      required:
+      - id
+      - cycleId
+      - offerId
+      - buyerCity
+      - quantity
+      - pricePerEnergy
+      - status
+      - swapId
+      - swapExpiresAt
+      - createdAt
+      title: SellerSwapOut
     SpanAggregate:
       properties:
         spanSeconds:
@@ -1480,6 +1656,202 @@ components:
       - cycles
       - bySpan
       title: SpanExperiment
+    StrategyAdminOut:
+      properties:
+        version:
+          type: integer
+          title: Version
+        config:
+          $ref: '#/components/schemas/StrategyConfig-Output'
+      type: object
+      required:
+      - version
+      - config
+      title: StrategyAdminOut
+    StrategyConfig-Input:
+      properties:
+        priceMode:
+          type: string
+          enum:
+          - fixed
+          - market_fraction
+          title: Pricemode
+          default: market_fraction
+        pricePerEnergy:
+          anyOf:
+          - type: number
+            minimum: 0.0
+          - type: string
+          - type: 'null'
+          title: Priceperenergy
+        priceFactor:
+          anyOf:
+          - type: number
+            maximum: 1.0
+            minimum: 0.0
+          - type: string
+          title: Pricefactor
+          default: '0.5'
+        offerQuantity:
+          anyOf:
+          - type: integer
+            exclusiveMinimum: 0.0
+          - type: 'null'
+          title: Offerquantity
+        bidAcceptancePolicy:
+          type: string
+          enum:
+          - arrival_order
+          - largest_quantity_first
+          title: Bidacceptancepolicy
+          default: arrival_order
+        buyWaitSpanSeconds:
+          type: integer
+          minimum: 0.0
+          title: Buywaitspanseconds
+          default: 60
+        offerSelectionPolicy:
+          type: string
+          enum:
+          - lowest_effective_price
+          - lowest_nominal_price
+          title: Offerselectionpolicy
+          default: lowest_effective_price
+      additionalProperties: false
+      type: object
+      title: StrategyConfig
+      description: |-
+        Parámetros efectivos de una estrategia para un ciclo.
+
+        En modo ``market_fraction``, el precio se calcula con la fórmula:
+
+        ``buybackPrice + price_factor * (imbalancePrice - buybackPrice)``.
+
+        ``offer_quantity=None`` significa ofrecer todo el ``sellable`` disponible.
+        ``buy_wait_span_seconds`` es el tiempo que el comprador espera una respuesta
+        antes de reintentar o pasar a otra oferta.
+    StrategyConfig-Output:
+      properties:
+        priceMode:
+          type: string
+          enum:
+          - fixed
+          - market_fraction
+          title: Pricemode
+          default: market_fraction
+        pricePerEnergy:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Priceperenergy
+        priceFactor:
+          type: string
+          title: Pricefactor
+          default: '0.5'
+        offerQuantity:
+          anyOf:
+          - type: integer
+            exclusiveMinimum: 0.0
+          - type: 'null'
+          title: Offerquantity
+        bidAcceptancePolicy:
+          type: string
+          enum:
+          - arrival_order
+          - largest_quantity_first
+          title: Bidacceptancepolicy
+          default: arrival_order
+        buyWaitSpanSeconds:
+          type: integer
+          minimum: 0.0
+          title: Buywaitspanseconds
+          default: 60
+        offerSelectionPolicy:
+          type: string
+          enum:
+          - lowest_effective_price
+          - lowest_nominal_price
+          title: Offerselectionpolicy
+          default: lowest_effective_price
+      additionalProperties: false
+      type: object
+      title: StrategyConfig
+      description: |-
+        Parámetros efectivos de una estrategia para un ciclo.
+
+        En modo ``market_fraction``, el precio se calcula con la fórmula:
+
+        ``buybackPrice + price_factor * (imbalancePrice - buybackPrice)``.
+
+        ``offer_quantity=None`` significa ofrecer todo el ``sellable`` disponible.
+        ``buy_wait_span_seconds`` es el tiempo que el comprador espera una respuesta
+        antes de reintentar o pasar a otra oferta.
+    StrategyOfferOut:
+      properties:
+        version:
+          type: integer
+          title: Version
+        priceMode:
+          type: string
+          enum:
+          - fixed
+          - market_fraction
+          title: Pricemode
+        pricePerEnergy:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Priceperenergy
+        priceFactor:
+          type: string
+          title: Pricefactor
+        offerQuantity:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Offerquantity
+      type: object
+      required:
+      - version
+      - priceMode
+      - pricePerEnergy
+      - priceFactor
+      - offerQuantity
+      title: StrategyOfferOut
+    StrategyOfferPatch:
+      properties:
+        priceMode:
+          anyOf:
+          - type: string
+            enum:
+            - fixed
+            - market_fraction
+          - type: 'null'
+          title: Pricemode
+        pricePerEnergy:
+          anyOf:
+          - type: number
+            minimum: 0.0
+          - type: string
+          - type: 'null'
+          title: Priceperenergy
+        priceFactor:
+          anyOf:
+          - type: number
+            maximum: 1.0
+            minimum: 0.0
+          - type: string
+          - type: 'null'
+          title: Pricefactor
+        offerQuantity:
+          anyOf:
+          - type: integer
+            exclusiveMinimum: 0.0
+          - type: 'null'
+          title: Offerquantity
+      type: object
+      title: StrategyOfferPatch
+      description: Campos editables de la oferta; solo actualiza los campos enviados.
     ValidationError:
       properties:
         loc:
