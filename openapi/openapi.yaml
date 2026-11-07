@@ -384,7 +384,11 @@ paths:
       tags:
       - negotiations
       summary: Mensajes duplicados, descartados o con NACK (RF05)
-      description: Mensajes duplicados, descartados y respondidos con NACK (RF05), paginados.
+      description: |-
+        Mensajes duplicados, descartados y respondidos con NACK (RF05), paginados.
+
+        Incluye los de otras ciudades (por ejemplo un bid con IDENTITY_MISMATCH): `cityId` es la
+        ciudad que el mensaje dice ser y `userId` el user_id AMQP con que llegó.
       operationId: list_unapplied_messages_message_log_get
       parameters:
       - name: category
@@ -401,6 +405,39 @@ paths:
           description: Filtra por tipo de registro
           title: Category
         description: Filtra por tipo de registro
+      - name: cityId
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 16
+          - type: 'null'
+          description: Ciudad emisora según el mensaje (cityId), o "central"
+          title: Cityid
+        description: Ciudad emisora según el mensaje (cityId), o "central"
+      - name: since
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          description: Recibidos desde este instante (incluido)
+          title: Since
+        description: Recibidos desde este instante (incluido)
+      - name: until
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          description: Recibidos hasta este instante (incluido)
+          title: Until
+        description: Recibidos hasta este instante (incluido)
       - name: page
         in: query
         required: false
@@ -1273,6 +1310,18 @@ components:
           - type: string
           - type: 'null'
           title: Reason
+        cityId:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Cityid
+          description: Ciudad emisora según el mensaje (cityId), o "central"
+        userId:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Userid
+          description: user_id AMQP con que llegó
         rawContent:
           type: string
           title: Rawcontent
@@ -1311,6 +1360,12 @@ components:
         pages:
           type: integer
           title: Pages
+        counts:
+          additionalProperties:
+            type: integer
+          type: object
+          title: Counts
+          description: Registros por categoría con los demás filtros (sin el de categoría)
       type: object
       required:
       - items
