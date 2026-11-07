@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
-  title: EnergyShark E1 API
-  version: 1.0.0
+  title: EnergyShark E2 API
+  version: 2.0.0
   description: |
     API HTTP pública del nodo de Talca (TAL). La interfaz la consume solo a través de API
     Gateway (`https://api.melchort.me`), que exige un JWT de Auth0 y agrega los headers CORS.
@@ -499,11 +499,9 @@ components:
       properties:
         energy:
           type: string
-          pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
           title: Energy
         budget:
           type: string
-          pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
           title: Budget
       type: object
       required:
@@ -642,7 +640,6 @@ components:
       properties:
         budgetBalance:
           type: string
-          pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
           title: Budgetbalance
         items:
           items:
@@ -666,19 +663,16 @@ components:
         generationCapacity:
           anyOf:
           - type: string
-            pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
           - type: 'null'
           title: Generationcapacity
         consumption:
           anyOf:
           - type: string
-            pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
           - type: 'null'
           title: Consumption
         generationCost:
           anyOf:
           - type: string
-            pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
           - type: 'null'
           title: Generationcost
         validUntil:
@@ -689,11 +683,9 @@ components:
           title: Validuntil
         energyBalance:
           type: string
-          pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
           title: Energybalance
         budgetDelta:
           type: string
-          pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
           title: Budgetdelta
         lastOperationIdpk:
           anyOf:
@@ -715,13 +707,11 @@ components:
         reportedBudget:
           anyOf:
           - type: string
-            pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
           - type: 'null'
           title: Reportedbudget
         reportedEnergy:
           anyOf:
           - type: string
-            pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
           - type: 'null'
           title: Reportedenergy
         reportError:
@@ -809,11 +799,9 @@ components:
           title: Kind
         energyDelta:
           type: string
-          pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
           title: Energydelta
         budgetDelta:
           type: string
-          pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
           title: Budgetdelta
         appliedAt:
           type: string
@@ -929,14 +917,12 @@ components:
           - type: number
             exclusiveMinimum: 0.0
           - type: string
-            pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
           title: Quantity
         pricePerEnergy:
           anyOf:
           - type: number
             exclusiveMinimum: 0.0
           - type: string
-            pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
           - type: 'null'
           title: Priceperenergy
       type: object
@@ -961,11 +947,9 @@ components:
           title: Direction
         quantity:
           type: string
-          pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
           title: Quantity
         pricePerEnergy:
           type: string
-          pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
           title: Priceperenergy
         state:
           type: string
@@ -976,19 +960,16 @@ components:
         confirmedEnergy:
           anyOf:
           - type: string
-            pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
           - type: 'null'
           title: Confirmedenergy
         confirmedPrice:
           anyOf:
           - type: string
-            pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
           - type: 'null'
           title: Confirmedprice
         amount:
           anyOf:
           - type: string
-            pattern: ^(?!^[-+.]*$)[+-]?0*\d*\.?\d*$
           - type: 'null'
           title: Amount
         reason:
