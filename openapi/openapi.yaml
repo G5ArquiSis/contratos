@@ -401,6 +401,48 @@ paths:
           description: Filtra por tipo de registro
           title: Category
         description: Filtra por tipo de registro
+      - name: city_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Filtra por ciudad emisora (ej. COR, HGW, MET)
+          title: City Id
+        description: Filtra por ciudad emisora (ej. COR, HGW, MET)
+      - name: message_type
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Filtra por tipo de mensaje (ej. bid, offer, transfer)
+          title: Message Type
+        description: Filtra por tipo de mensaje (ej. bid, offer, transfer)
+      - name: from_date
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          description: Filtra mensajes recibidos desde esta fecha/hora ISO
+          title: From Date
+        description: Filtra mensajes recibidos desde esta fecha/hora ISO
+      - name: to_date
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          description: Filtra mensajes recibidos hasta esta fecha/hora ISO
+          title: To Date
+        description: Filtra mensajes recibidos hasta esta fecha/hora ISO
       - name: page
         in: query
         required: false
@@ -1273,6 +1315,16 @@ components:
           - type: string
           - type: 'null'
           title: Reason
+        senderCity:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Sender City
+        senderUserId:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Sender User Id
         rawContent:
           type: string
           title: Rawcontent
@@ -1292,6 +1344,26 @@ components:
       - rawContent
       - receivedAt
       title: MessageLogEntry
+    MessageLogCounts:
+      properties:
+        total:
+          default: 0
+          title: Total
+          type: integer
+        duplicate:
+          default: 0
+          title: Duplicate
+          type: integer
+        discarded:
+          default: 0
+          title: Discarded
+          type: integer
+        nack:
+          default: 0
+          title: Nack
+          type: integer
+      title: MessageLogCounts
+      type: object
     MessageLogPage:
       properties:
         items:
@@ -1311,6 +1383,11 @@ components:
         pages:
           type: integer
           title: Pages
+        counts:
+          anyOf:
+          - $ref: '#/components/schemas/MessageLogCounts'
+          - type: 'null'
+          title: Counts
       type: object
       required:
       - items
