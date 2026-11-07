@@ -384,7 +384,7 @@ paths:
       tags:
       - negotiations
       summary: Mensajes duplicados, descartados o con NACK (RF05)
-      description: Mensajes duplicados, descartados y respondidos con NACK (RF05), paginados.
+      description: Mensajes duplicados, descartados y respondidos con NACK (RF05), paginados y filtrables.
       operationId: list_unapplied_messages_message_log_get
       parameters:
       - name: category
@@ -1282,6 +1282,26 @@ components:
       - deficit
       - isOpen
       title: MarketWindow
+    MessageLogCounts:
+      properties:
+        total:
+          type: integer
+          title: Total
+          default: 0
+        duplicate:
+          type: integer
+          title: Duplicate
+          default: 0
+        discarded:
+          type: integer
+          title: Discarded
+          default: 0
+        nack:
+          type: integer
+          title: Nack
+          default: 0
+      type: object
+      title: MessageLogCounts
     MessageLogEntry:
       properties:
         id:
@@ -1319,12 +1339,12 @@ components:
           anyOf:
           - type: string
           - type: 'null'
-          title: Sender City
+          title: Sendercity
         senderUserId:
           anyOf:
           - type: string
           - type: 'null'
-          title: Sender User Id
+          title: Senderuserid
         rawContent:
           type: string
           title: Rawcontent
@@ -1344,26 +1364,6 @@ components:
       - rawContent
       - receivedAt
       title: MessageLogEntry
-    MessageLogCounts:
-      properties:
-        total:
-          default: 0
-          title: Total
-          type: integer
-        duplicate:
-          default: 0
-          title: Duplicate
-          type: integer
-        discarded:
-          default: 0
-          title: Discarded
-          type: integer
-        nack:
-          default: 0
-          title: Nack
-          type: integer
-      title: MessageLogCounts
-      type: object
     MessageLogPage:
       properties:
         items:
@@ -1387,7 +1387,6 @@ components:
           anyOf:
           - $ref: '#/components/schemas/MessageLogCounts'
           - type: 'null'
-          title: Counts
       type: object
       required:
       - items
