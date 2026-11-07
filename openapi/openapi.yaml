@@ -10,6 +10,8 @@ info:
     - RF02: `/connectivity`
     - RF04: `/negotiations`
     - RF05: `/message-log`
+    - RF02 (E2): `/market/book`; motor comprador: `/market/bids`
+    - RF06: `/experiments/span`
     - E0: `/history`
 
     Los endpoints `/internal/*` (contrato entre connector y master) quedan fuera de este archivo:
@@ -446,8 +448,235 @@ paths:
               schema: {}
         '401':
           description: Falta el token de Auth0 o no es válido (lo responde API Gateway)
+  /market/book:
+    get:
+      tags:
+      - market
+      summary: Libro de ofertas con transporte y precio efectivo (RF02)
+      description: Ofertas abiertas de otras ciudades, de la más barata (con transporte) a la más cara.
+      operationId: get_market_book_market_book_get
+      responses:
+        '200':
+          description: Respuesta correcta
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MarketBook'
+        '401':
+          description: Falta el token de Auth0 o no es válido (lo responde API Gateway)
+  /market/bids:
+    get:
+      tags:
+      - market
+      summary: Bids de TAL y el estado de su swap (motor comprador)
+      description: Bids de TAL, del más reciente al más antiguo, con su estado y el swap asociado.
+      operationId: get_market_bids_market_bids_get
+      parameters:
+      - name: cycleId
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Cycleid
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 200
+          minimum: 1
+          default: 50
+          title: Limit
+      responses:
+        '200':
+          description: Respuesta correcta
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BidList'
+        '422':
+          description: Parámetros o cuerpo inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+        '401':
+          description: Falta el token de Auth0 o no es válido (lo responde API Gateway)
+  /experiments/span:
+    get:
+      tags:
+      - experiments
+      summary: Experimento de span por ciclo y por valor de span (RF06)
+      description: |-
+        Por ciclo: span usado, déficit cubierto en el mercado, costo efectivo frente al
+        baseline (déficit × imbalancePrice) y bids rechazados; y lo mismo agregado por span.
+      operationId: get_span_experiment_experiments_span_get
+      responses:
+        '200':
+          description: Respuesta correcta
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpanExperiment'
+        '401':
+          description: Falta el token de Auth0 o no es válido (lo responde API Gateway)
 components:
   schemas:
+    BidList:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/BidOut'
+          type: array
+          title: Items
+      type: object
+      required:
+      - items
+      title: BidList
+    BidOut:
+      properties:
+        id:
+          type: integer
+          title: Id
+        idpk:
+          type: string
+          title: Idpk
+        cycleId:
+          type: string
+          title: Cycleid
+        offerId:
+          type: string
+          title: Offerid
+        seller:
+          type: string
+          title: Seller
+        quantity:
+          type: string
+          title: Quantity
+        pricePerEnergy:
+          type: string
+          title: Priceperenergy
+        transportPerEnergy:
+          type: string
+          title: Transportperenergy
+        state:
+          type: string
+          title: State
+        reason:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Reason
+        attempts:
+          type: integer
+          title: Attempts
+        spanSeconds:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Spanseconds
+        swapId:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Swapid
+        swapAmount:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Swapamount
+        createdAt:
+          type: string
+          format: date-time
+          title: Createdat
+        updatedAt:
+          type: string
+          format: date-time
+          title: Updatedat
+      type: object
+      required:
+      - id
+      - idpk
+      - cycleId
+      - offerId
+      - seller
+      - quantity
+      - pricePerEnergy
+      - transportPerEnergy
+      - state
+      - reason
+      - attempts
+      - spanSeconds
+      - swapId
+      - swapAmount
+      - createdAt
+      - updatedAt
+      title: BidOut
+    BookOffer:
+      properties:
+        offerId:
+          type: string
+          title: Offerid
+        cityId:
+          type: string
+          title: Cityid
+        quantity:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Quantity
+        remaining:
+          type: string
+          title: Remaining
+        pricePerEnergy:
+          type: string
+          title: Priceperenergy
+        distanceKm:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Distancekm
+        transportPerEnergy:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Transportperenergy
+        effectivePrice:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Effectiveprice
+        routeEnabled:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Routeenabled
+        worthBuying:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Worthbuying
+        updatedAt:
+          type: string
+          format: date-time
+          title: Updatedat
+      type: object
+      required:
+      - offerId
+      - cityId
+      - quantity
+      - remaining
+      - pricePerEnergy
+      - distanceKm
+      - transportPerEnergy
+      - effectivePrice
+      - routeEnabled
+      - worthBuying
+      - updatedAt
+      title: BookOffer
+      description: Una oferta de otra ciudad con lo que le cuesta a TAL comprarla.
     Connection:
       properties:
         destination:
@@ -825,6 +1054,69 @@ components:
       - message
       title: LedgerEventOut
       description: Una operación aplicada al ledger dentro de un ciclo.
+    MarketBook:
+      properties:
+        cycleId:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Cycleid
+        market:
+          anyOf:
+          - $ref: '#/components/schemas/MarketWindow'
+          - type: 'null'
+        offers:
+          items:
+            $ref: '#/components/schemas/BookOffer'
+          type: array
+          title: Offers
+      type: object
+      required:
+      - cycleId
+      - market
+      - offers
+      title: MarketBook
+      description: El libro del ciclo con mercado abierto (o del último con ofertas).
+    MarketWindow:
+      properties:
+        opensAt:
+          type: string
+          format: date-time
+          title: Opensat
+        lastBidAt:
+          type: string
+          format: date-time
+          title: Lastbidat
+        closesAt:
+          type: string
+          format: date-time
+          title: Closesat
+        imbalancePrice:
+          type: string
+          title: Imbalanceprice
+        buybackPrice:
+          type: string
+          title: Buybackprice
+        minBid:
+          type: string
+          title: Minbid
+        deficit:
+          type: string
+          title: Deficit
+        isOpen:
+          type: boolean
+          title: Isopen
+      type: object
+      required:
+      - opensAt
+      - lastBidAt
+      - closesAt
+      - imbalancePrice
+      - buybackPrice
+      - minBid
+      - deficit
+      - isOpen
+      title: MarketWindow
     MessageLogEntry:
       properties:
         id:
@@ -1057,6 +1349,137 @@ components:
       - pages
       title: PaginatedHistory
       description: Una página del historial más los datos para navegar el resto.
+    SpanAggregate:
+      properties:
+        spanSeconds:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Spanseconds
+        cycles:
+          type: integer
+          title: Cycles
+        cycleIds:
+          items:
+            type: string
+          type: array
+          title: Cycleids
+        deficit:
+          type: string
+          title: Deficit
+        covered:
+          type: string
+          title: Covered
+        coverage:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Coverage
+        effectiveCost:
+          type: string
+          title: Effectivecost
+        baselineCost:
+          type: string
+          title: Baselinecost
+        costVsBaseline:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Costvsbaseline
+        bidsSent:
+          type: integer
+          title: Bidssent
+        bidsRejected:
+          type: integer
+          title: Bidsrejected
+      type: object
+      required:
+      - spanSeconds
+      - cycles
+      - cycleIds
+      - deficit
+      - covered
+      - coverage
+      - effectiveCost
+      - baselineCost
+      - costVsBaseline
+      - bidsSent
+      - bidsRejected
+      title: SpanAggregate
+    SpanCycle:
+      properties:
+        cycleId:
+          type: string
+          title: Cycleid
+        spanSeconds:
+          anyOf:
+          - type: integer
+          - type: 'null'
+          title: Spanseconds
+        deficit:
+          type: string
+          title: Deficit
+        covered:
+          type: string
+          title: Covered
+        coverage:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Coverage
+        marketCost:
+          type: string
+          title: Marketcost
+        imbalanceCost:
+          type: string
+          title: Imbalancecost
+        effectiveCost:
+          type: string
+          title: Effectivecost
+        baselineCost:
+          type: string
+          title: Baselinecost
+        savings:
+          type: string
+          title: Savings
+        bidsSent:
+          type: integer
+          title: Bidssent
+        bidsRejected:
+          type: integer
+          title: Bidsrejected
+      type: object
+      required:
+      - cycleId
+      - spanSeconds
+      - deficit
+      - covered
+      - coverage
+      - marketCost
+      - imbalanceCost
+      - effectiveCost
+      - baselineCost
+      - savings
+      - bidsSent
+      - bidsRejected
+      title: SpanCycle
+    SpanExperiment:
+      properties:
+        cycles:
+          items:
+            $ref: '#/components/schemas/SpanCycle'
+          type: array
+          title: Cycles
+        bySpan:
+          items:
+            $ref: '#/components/schemas/SpanAggregate'
+          type: array
+          title: Byspan
+      type: object
+      required:
+      - cycles
+      - bySpan
+      title: SpanExperiment
     ValidationError:
       properties:
         loc:
